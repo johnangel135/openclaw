@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.9 - 2026-03-23
+
+- style(auth): match homepage visual theme (79f6981)
+
 ## v1.0.8 - 2026-03-23
 
 - Add account auth and user API-key managed console access (73efbb3)
