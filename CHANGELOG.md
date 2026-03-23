@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.10 - 2026-03-23
+
+- fix(auth): persist accounts in Postgres for container-safe signup (52e6162)
+
 ## v1.0.9 - 2026-03-23
 
 - style(auth): match homepage visual theme (79f6981)
