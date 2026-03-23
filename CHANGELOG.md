@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.2 - 2026-03-23
+
+- ci(cd): Deploy latest image to QNAP via SSH (74c22c0)
+
 ## v1.0.1 - 2026-03-23
 
 - Implement LLM token and cost console with provider proxy (dbee1b5)
