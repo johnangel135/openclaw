@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.7 - 2026-03-23
+
+- ci(cd): Roll back deployment trigger to Render (35aca95)
+
 ## v1.0.6 - 2026-03-23
 
 - revert(docs): Remove AGENTS.md from repository (ed2806d)
