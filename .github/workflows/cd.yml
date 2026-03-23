@@ -37,12 +37,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trigger Render redeploy
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      - name: Set up SSH key for QNAP deploy
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "Missing required secret: RENDER_DEPLOY_HOOK_URL"
+          if [ -z "${{ secrets.QNAP_HOST }}" ] || [ -z "${{ secrets.QNAP_USER }}" ] || [ -z "${{ secrets.QNAP_SSH_PRIVATE_KEY }}" ]; then
+            echo "Missing required secrets: QNAP_HOST, QNAP_USER, QNAP_SSH_PRIVATE_KEY"
             exit 1
           fi
-          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.QNAP_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.QNAP_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy latest image on QNAP
+        env:
+          QNAP_HOST: ${{ secrets.QNAP_HOST }}
+          QNAP_USER: ${{ secrets.QNAP_USER }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${QNAP_USER}@${QNAP_HOST}" '
+            set -e
+            docker pull ghcr.io/johnangel135/openclaw:latest
+            docker rm -f openclaw || true
+            docker run -d --name openclaw --restart unless-stopped -p 3000:3000 ghcr.io/johnangel135/openclaw:latest
+          '
