@@ -36,3 +36,13 @@ jobs:
             ghcr.io/johnangel135/openclaw:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Trigger Render redeploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "Missing required secret: RENDER_DEPLOY_HOOK_URL"
+            exit 1
+          fi
+          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
