@@ -354,7 +354,20 @@
       <div style="display:flex; gap:0.5rem; align-items:center;">
         <span class="muted" id="lastUpdated">Not loaded</span>
         <button id="refreshBtn" type="button">Refresh</button>
+        <button id="logoutBtn" type="button">Logout</button>
       </div>
+    </section>
+
+    <section class="panel">
+      <h2>Your API Keys</h2>
+      <p class="panel-subtitle">Saved per account. Used by /api/user/infer.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;">
+        <div><label class="muted">OpenAI</label><input id="keyOpenAI" type="password" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="sk-..."/></div>
+        <div><label class="muted">Anthropic</label><input id="keyAnthropic" type="password" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="sk-ant-..."/></div>
+        <div><label class="muted">Gemini</label><input id="keyGemini" type="password" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="AIza..."/></div>
+        <div><button id="saveKeysBtn" type="button">Save keys</button></div>
+      </div>
+      <p id="keysState" class="muted" style="margin-top:8px">No keys loaded</p>
     </section>
 
     <section id="errorBox" class="error" style="display:none;"></section>
@@ -406,35 +419,8 @@
     const number = new Intl.NumberFormat('en-US');
     const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-    function getToken() {
-      const url = new URL(window.location.href);
-      const fromQuery = url.searchParams.get('token');
-      const fromStorage = localStorage.getItem('openclaw_console_token');
-      const token = fromQuery || fromStorage || '';
-
-      if (fromQuery) {
-        localStorage.setItem('openclaw_console_token', fromQuery);
-      }
-
-      if (token) {
-        return token;
-      }
-
-      const entered = window.prompt('Enter CONSOLE_ADMIN_TOKEN');
-      if (entered) {
-        localStorage.setItem('openclaw_console_token', entered);
-        return entered;
-      }
-
-      return '';
-    }
-
-    const adminToken = getToken();
-
     function authHeaders() {
-      return {
-        'x-admin-token': adminToken,
-      };
+      return {};
     }
 
     function getRangeBounds(rangeValue) {
@@ -469,6 +455,7 @@
     async function fetchJson(url) {
       const response = await fetch(url, {
         headers: authHeaders(),
+        credentials: 'include',
       });
 
       const payload = await response.json().catch(() => ({}));
@@ -590,11 +577,6 @@
     }
 
     async function loadDashboard() {
-      if (!adminToken) {
-        setError('A valid CONSOLE_ADMIN_TOKEN is required to view this page.');
-        return;
-      }
-
       setError('');
 
       const rangeValue = document.getElementById('rangeSelect').value;
@@ -605,11 +587,11 @@
 
       try {
         const [summary, trend, byModel, perf, requests] = await Promise.all([
-          fetchJson(`/api/usage/summary?from=${from}&to=${to}`),
-          fetchJson(`/api/usage/trend?from=${from}&to=${to}&bucket=${bucket}`),
-          fetchJson(`/api/usage/by-model?from=${from}&to=${to}`),
-          fetchJson('/api/usage/perf?window=5m'),
-          fetchJson(`/api/usage/requests?from=${from}&to=${to}&limit=25`),
+          fetchJson(`/api/user/usage/summary?from=${from}&to=${to}`),
+          fetchJson(`/api/user/usage/trend?from=${from}&to=${to}&bucket=${bucket}`),
+          fetchJson(`/api/user/usage/by-model?from=${from}&to=${to}`),
+          fetchJson('/api/user/usage/perf?window=5m'),
+          fetchJson(`/api/user/usage/requests?from=${from}&to=${to}&limit=25`),
         ]);
 
         renderKpis(summary, perf);
@@ -623,9 +605,49 @@
       }
     }
 
+    async function loadApiKeys() {
+      try {
+        const data = await fetchJson('/api/user/api-keys');
+        document.getElementById('keysState').textContent = `Saved: ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ')}`;
+      } catch (error) {
+        document.getElementById('keysState').textContent = error.message;
+      }
+    }
+
+    async function saveApiKeys() {
+      const body = {
+        openai: document.getElementById('keyOpenAI').value,
+        anthropic: document.getElementById('keyAnthropic').value,
+        gemini: document.getElementById('keyGemini').value,
+      };
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data?.error?.message || 'Failed to save keys');
+        return;
+      }
+      document.getElementById('keyOpenAI').value = '';
+      document.getElementById('keyAnthropic').value = '';
+      document.getElementById('keyGemini').value = '';
+      document.getElementById('keysState').textContent = `Saved: ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ')}`;
+    }
+
+    async function logout() {
+      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+      location.href = '/auth';
+    }
+
     document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
     document.getElementById('rangeSelect').addEventListener('change', loadDashboard);
+    document.getElementById('saveKeysBtn').addEventListener('click', saveApiKeys);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
 
+    loadApiKeys();
     loadDashboard();
     setInterval(loadDashboard, 30000);
   </script>

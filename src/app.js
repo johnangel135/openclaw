@@ -5,6 +5,18 @@ const path = require('path');
 
 const { requireAdminToken, extractAdminToken } = require('./auth');
 const {
+  authenticateUser,
+  clearSessionCookie,
+  createSession,
+  createUser,
+  getSessionUser,
+  getUserApiKeys,
+  maskApiKeys,
+  requireUserSession,
+  setSessionCookie,
+  updateUserApiKeys,
+} = require('./user-auth');
+const {
   estimateCostUsd,
   getUsageByModel,
   getUsagePerf,
@@ -31,6 +43,7 @@ const {
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const CONSOLE_FILE = path.join(__dirname, 'console.html');
+const AUTH_FILE = path.join(__dirname, 'auth.html');
 
 function getHealthData() {
   return {
@@ -94,17 +107,18 @@ function serializeUsage(usage) {
   };
 }
 
-async function runProxyAndTrack({ inferPayload, endpointName, responseFormatter }) {
+async function runProxyAndTrack({ inferPayload, endpointName, responseFormatter, userId = null, apiKeys = {} }) {
   const startedAt = Date.now();
   const provider = (inferPayload.provider || 'openai').toLowerCase();
   const model = inferPayload.model || 'unknown';
 
   try {
-    const result = await invokeInfer(inferPayload, PROXY_UPSTREAM_TIMEOUT_MS);
+    const result = await invokeInfer(inferPayload, PROXY_UPSTREAM_TIMEOUT_MS, apiKeys);
     const usage = serializeUsage(result.usage || {});
     const estimatedCostUsd = await estimateCostUsd(result.provider, result.model, usage.input_tokens, usage.output_tokens);
 
     await logUsageEvent({
+      user_id: userId,
       provider: result.provider,
       model: result.model,
       endpoint: endpointName,
@@ -130,6 +144,7 @@ async function runProxyAndTrack({ inferPayload, endpointName, responseFormatter 
 
     try {
       await logUsageEvent({
+        user_id: userId,
         provider,
         model,
         endpoint: endpointName,
@@ -159,6 +174,50 @@ function createApp() {
 
   // Serve static files from public directory.
   app.use(express.static(PUBLIC_DIR));
+
+  app.get('/auth', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.sendFile(AUTH_FILE);
+  });
+
+  app.post('/auth/signup', asyncHandler(async (req, res) => {
+    const { email, password } = req.body || {};
+    try {
+      const user = createUser(email, password);
+      const token = createSession(user.id);
+      setSessionCookie(res, token);
+      res.status(201).json({ user });
+    } catch (error) {
+      const code = String(error.message || '').includes('exists') ? 409 : 400;
+      res.status(code).json({ error: { message: error.message, code: 'invalid_signup' } });
+    }
+  }));
+
+  app.post('/auth/login', asyncHandler(async (req, res) => {
+    const { email, password } = req.body || {};
+    const user = authenticateUser(email, password);
+    if (!user) {
+      res.status(401).json({ error: { message: 'Invalid email/password', code: 'unauthorized' } });
+      return;
+    }
+    const token = createSession(user.id);
+    setSessionCookie(res, token);
+    res.json({ user });
+  }));
+
+  app.post('/auth/logout', (req, res) => {
+    clearSessionCookie(req, res);
+    res.json({ ok: true });
+  });
+
+  app.get('/auth/me', (req, res) => {
+    const user = getSessionUser(req);
+    if (!user) {
+      res.status(401).json({ error: { message: 'Login required', code: 'unauthorized' } });
+      return;
+    }
+    res.json({ user });
+  });
 
   app.get('/health', (req, res) => {
     const healthData = getHealthData();
@@ -194,6 +253,19 @@ function createApp() {
   app.use('/v1/responses', requireAdminToken, proxyRateLimiter);
   app.use('/api/usage', requireAdminToken);
 
+  app.use('/api/user/infer', requireUserSession, proxyRateLimiter);
+  app.use('/api/user/usage', requireUserSession);
+
+  app.get('/api/user/api-keys', requireUserSession, (req, res) => {
+    const keys = getUserApiKeys(req.user.id) || {};
+    res.json({ keys: maskApiKeys(keys) });
+  });
+
+  app.post('/api/user/api-keys', requireUserSession, (req, res) => {
+    const keys = updateUserApiKeys(req.user.id, req.body || {});
+    res.json({ keys });
+  });
+
   app.post('/api/llm/infer', asyncHandler(async (req, res) => {
     if (!requireDatabase(res)) {
       return;
@@ -203,6 +275,32 @@ function createApp() {
     const result = await runProxyAndTrack({
       inferPayload,
       endpointName: '/api/llm/infer',
+      responseFormatter: (value) => ({
+        provider: value.provider,
+        model: value.model,
+        status_code: value.upstream_status_code,
+        output_text: value.output_text,
+        usage: value.usage,
+        estimated_cost_usd: value.estimated_cost_usd,
+        raw_response: value.raw_response,
+      }),
+    });
+
+    res.status(result.statusCode).json(result.body);
+  }));
+
+  app.post('/api/user/infer', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const inferPayload = req.body || {};
+    const userKeys = getUserApiKeys(req.user.id) || {};
+    const result = await runProxyAndTrack({
+      inferPayload,
+      endpointName: '/api/user/infer',
+      userId: req.user.id,
+      apiKeys: userKeys,
       responseFormatter: (value) => ({
         provider: value.provider,
         model: value.model,
@@ -295,7 +393,54 @@ function createApp() {
     res.json(data);
   }));
 
-  app.get('/console', requireAdminToken, (req, res) => {
+  app.get('/api/user/usage/summary', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+    const data = await getUsageSummary(req.query.from, req.query.to, req.user.id);
+    res.json(data);
+  }));
+
+  app.get('/api/user/usage/trend', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+    const bucket = req.query.bucket === 'day' ? 'day' : 'hour';
+    const data = await getUsageTrend(req.query.from, req.query.to, bucket, req.user.id);
+    res.json(data);
+  }));
+
+  app.get('/api/user/usage/by-model', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+    const data = await getUsageByModel(req.query.from, req.query.to, req.user.id);
+    res.json(data);
+  }));
+
+  app.get('/api/user/usage/perf', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+    const window = req.query.window === '1h' || req.query.window === '15m' ? req.query.window : '5m';
+    const data = await getUsagePerf(window, req.user.id);
+    res.json(data);
+  }));
+
+  app.get('/api/user/usage/requests', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+    const limit = parseLimit(req.query.limit, 20);
+    const data = await getUsageRequests(req.query.from, req.query.to, limit, req.query.cursor, req.user.id);
+    res.json(data);
+  }));
+
+  app.get('/console', (req, res) => {
+    if (!getSessionUser(req)) {
+      res.redirect('/auth');
+      return;
+    }
     res.set('Cache-Control', 'no-store');
     res.sendFile(CONSOLE_FILE);
   });

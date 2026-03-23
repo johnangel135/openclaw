@@ -350,7 +350,7 @@ function toErrorCode(payload, fallback) {
   return fallback;
 }
 
-async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS) {
+async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS, apiKeys = {}) {
   if (!inferBody || typeof inferBody !== 'object') {
     throw new ProxyError('Request body must be a JSON object', {
       statusCode: 400,
@@ -368,8 +368,12 @@ async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS) {
     });
   }
 
+  const effectiveOpenAIKey = apiKeys.openai || OPENAI_API_KEY;
+  const effectiveAnthropicKey = apiKeys.anthropic || ANTHROPIC_API_KEY;
+  const effectiveGeminiKey = apiKeys.gemini || GEMINI_API_KEY;
+
   if (provider === 'openai') {
-    if (!OPENAI_API_KEY) {
+    if (!effectiveOpenAIKey) {
       throw new ProxyError('OPENAI_API_KEY is not configured', {
         statusCode: 503,
         errorCode: 'config_missing_openai_api_key',
@@ -381,7 +385,7 @@ async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS) {
     const response = await postJson(
       'https://api.openai.com/v1/chat/completions',
       {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${effectiveOpenAIKey}`,
         'Content-Type': 'application/json',
       },
       payload,
@@ -409,7 +413,7 @@ async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS) {
   }
 
   if (provider === 'anthropic') {
-    if (!ANTHROPIC_API_KEY) {
+    if (!effectiveAnthropicKey) {
       throw new ProxyError('ANTHROPIC_API_KEY is not configured', {
         statusCode: 503,
         errorCode: 'config_missing_anthropic_api_key',
@@ -421,7 +425,7 @@ async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS) {
     const response = await postJson(
       'https://api.anthropic.com/v1/messages',
       {
-        'x-api-key': ANTHROPIC_API_KEY,
+        'x-api-key': effectiveAnthropicKey,
         'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
@@ -450,7 +454,7 @@ async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS) {
   }
 
   if (provider === 'gemini') {
-    if (!GEMINI_API_KEY) {
+    if (!effectiveGeminiKey) {
       throw new ProxyError('GEMINI_API_KEY is not configured', {
         statusCode: 503,
         errorCode: 'config_missing_gemini_api_key',
@@ -459,7 +463,7 @@ async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS) {
     }
 
     const payload = inferToGeminiPayload(inferBody);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(payload.model)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(payload.model)}:generateContent?key=${encodeURIComponent(effectiveGeminiKey)}`;
     const response = await postJson(
       url,
       {

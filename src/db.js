@@ -80,6 +80,7 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS llm_usage_events (
       id BIGSERIAL PRIMARY KEY,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      user_id TEXT,
       provider TEXT NOT NULL,
       model TEXT NOT NULL,
       endpoint TEXT NOT NULL,
@@ -93,8 +94,10 @@ async function initDatabase() {
     )
   `);
 
+  await db.query('ALTER TABLE llm_usage_events ADD COLUMN IF NOT EXISTS user_id TEXT');
   await db.query('CREATE INDEX IF NOT EXISTS idx_llm_usage_events_created_at ON llm_usage_events (created_at DESC)');
   await db.query('CREATE INDEX IF NOT EXISTS idx_llm_usage_events_provider_model_created_at ON llm_usage_events (provider, model, created_at DESC)');
+  await db.query('CREATE INDEX IF NOT EXISTS idx_llm_usage_events_user_created_at ON llm_usage_events (user_id, created_at DESC)');
 
   for (const [provider, model, inputPrice, outputPrice] of SEEDED_MODEL_PRICING) {
     await db.query(
@@ -180,6 +183,7 @@ async function logUsageEvent(event) {
   await db.query(
     `
     INSERT INTO llm_usage_events (
+      user_id,
       provider,
       model,
       endpoint,
@@ -191,9 +195,10 @@ async function logUsageEvent(event) {
       status_code,
       error_code
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     `,
     [
+      event.user_id || null,
       event.provider,
       event.model,
       event.endpoint,
@@ -206,6 +211,16 @@ async function logUsageEvent(event) {
       event.error_code || null,
     ],
   );
+}
+
+function buildUserFilter(userId, startIndex = 3) {
+  if (!userId) {
+    return { clause: '', values: [] };
+  }
+  return {
+    clause: ` AND user_id = $${startIndex}`,
+    values: [userId],
+  };
 }
 
 function normalizeRange(from, to) {
@@ -223,9 +238,10 @@ function normalizeRange(from, to) {
   return { from: safeFrom, to: safeTo };
 }
 
-async function getUsageSummary(from, to) {
+async function getUsageSummary(from, to, userId = null) {
   const db = getPool();
   const range = normalizeRange(from, to);
+  const filter = buildUserFilter(userId, 3);
   const result = await db.query(
     `
     SELECT
@@ -235,9 +251,9 @@ async function getUsageSummary(from, to) {
       COALESCE(SUM(total_tokens),0)::bigint AS total_tokens,
       COALESCE(SUM(estimated_cost_usd),0)::numeric AS estimated_cost_usd
     FROM llm_usage_events
-    WHERE created_at >= $1 AND created_at <= $2
+    WHERE created_at >= $1 AND created_at <= $2${filter.clause}
     `,
-    [range.from.toISOString(), range.to.toISOString()],
+    [range.from.toISOString(), range.to.toISOString(), ...filter.values],
   );
 
   const row = result.rows[0];
@@ -252,10 +268,11 @@ async function getUsageSummary(from, to) {
   };
 }
 
-async function getUsageTrend(from, to, bucket) {
+async function getUsageTrend(from, to, bucket, userId = null) {
   const db = getPool();
   const safeBucket = bucket === 'day' ? 'day' : 'hour';
   const range = normalizeRange(from, to);
+  const filter = buildUserFilter(userId, 4);
 
   const result = await db.query(
     `
@@ -265,11 +282,11 @@ async function getUsageTrend(from, to, bucket) {
       COALESCE(SUM(total_tokens),0)::bigint AS total_tokens,
       COALESCE(SUM(estimated_cost_usd),0)::numeric AS estimated_cost_usd
     FROM llm_usage_events
-    WHERE created_at >= $1 AND created_at <= $2
+    WHERE created_at >= $1 AND created_at <= $2${filter.clause}
     GROUP BY bucket_start
     ORDER BY bucket_start ASC
     `,
-    [range.from.toISOString(), range.to.toISOString(), safeBucket],
+    [range.from.toISOString(), range.to.toISOString(), safeBucket, ...filter.values],
   );
 
   return {
@@ -285,9 +302,10 @@ async function getUsageTrend(from, to, bucket) {
   };
 }
 
-async function getUsageByModel(from, to) {
+async function getUsageByModel(from, to, userId = null) {
   const db = getPool();
   const range = normalizeRange(from, to);
+  const filter = buildUserFilter(userId, 3);
 
   const result = await db.query(
     `
@@ -300,11 +318,11 @@ async function getUsageByModel(from, to) {
       COALESCE(SUM(total_tokens),0)::bigint AS total_tokens,
       COALESCE(SUM(estimated_cost_usd),0)::numeric AS estimated_cost_usd
     FROM llm_usage_events
-    WHERE created_at >= $1 AND created_at <= $2
+    WHERE created_at >= $1 AND created_at <= $2${filter.clause}
     GROUP BY provider, model
     ORDER BY total_tokens DESC, request_count DESC
     `,
-    [range.from.toISOString(), range.to.toISOString()],
+    [range.from.toISOString(), range.to.toISOString(), ...filter.values],
   );
 
   return {
@@ -322,9 +340,10 @@ async function getUsageByModel(from, to) {
   };
 }
 
-async function getUsagePerf(windowName) {
+async function getUsagePerf(windowName, userId = null) {
   const db = getPool();
   const minutes = windowName === '1h' ? 60 : windowName === '15m' ? 15 : 5;
+  const filter = buildUserFilter(userId, 2);
 
   const result = await db.query(
     `
@@ -332,9 +351,9 @@ async function getUsagePerf(windowName) {
       COUNT(*)::int AS request_count,
       COALESCE(SUM(total_tokens),0)::bigint AS total_tokens
     FROM llm_usage_events
-    WHERE created_at >= NOW() - ($1::text || ' minutes')::interval
+    WHERE created_at >= NOW() - ($1::text || ' minutes')::interval${filter.clause}
     `,
-    [String(minutes)],
+    [String(minutes), ...filter.values],
   );
 
   const row = result.rows[0];
@@ -350,12 +369,14 @@ async function getUsagePerf(windowName) {
   };
 }
 
-async function getUsageRequests(from, to, limit, cursor) {
+async function getUsageRequests(from, to, limit, cursor, userId = null) {
   const db = getPool();
   const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), 100);
   const range = normalizeRange(from, to);
 
   const values = [range.from.toISOString(), range.to.toISOString(), safeLimit + 1];
+  const filter = buildUserFilter(userId, values.length + 1);
+  values.push(...filter.values);
   let cursorClause = '';
   if (cursor) {
     values.push(cursor);
@@ -378,7 +399,7 @@ async function getUsageRequests(from, to, limit, cursor) {
       total_tokens,
       estimated_cost_usd
     FROM llm_usage_events
-    WHERE created_at >= $1 AND created_at <= $2
+    WHERE created_at >= $1 AND created_at <= $2${filter.clause}
     ${cursorClause}
     ORDER BY id DESC
     LIMIT $3
