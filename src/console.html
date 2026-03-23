@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenClaw Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --forest: #2d6a4f;
+      --fern: #52b788;
+      --mint: #b7e4c7;
+      --bark: #1b4332;
+      --text: #1a2e22;
+      --muted: #4a7c59;
+      --danger: #cf4040;
+      --card-bg: #ffffff;
+      --line: #d8efe1;
+      --chart: #3aa776;
+      --chart-alt: #4ea8de;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(160deg, #f8fff9 0%, #f2fcf5 45%, #ecfaf1 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      backdrop-filter: blur(8px);
+      background: rgba(240, 253, 244, 0.86);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-logo {
+      text-decoration: none;
+      color: var(--forest);
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .nav-logo span {
+      color: var(--fern);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+      list-style: none;
+      font-size: 0.88rem;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.4rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .hero {
+      border-radius: 18px;
+      background: linear-gradient(145deg, var(--bark) 0%, var(--forest) 55%, var(--fern) 100%);
+      color: #fff;
+      padding: 1.4rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      margin-bottom: 0.45rem;
+    }
+
+    .hero p {
+      color: rgba(216, 243, 220, 0.95);
+      line-height: 1.6;
+      max-width: 72ch;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--card-bg);
+      padding: 0.8rem 1rem;
+    }
+
+    .toolbar label {
+      font-size: 0.84rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    select, button {
+      border: 1px solid var(--mint);
+      background: #fff;
+      color: var(--bark);
+      border-radius: 10px;
+      padding: 0.5rem 0.7rem;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button {
+      background: var(--forest);
+      color: #fff;
+      border-color: var(--forest);
+      font-weight: 600;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.8rem;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 0.95rem;
+      background: var(--card-bg);
+    }
+
+    .card .label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.68rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .card .value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--bark);
+      word-break: break-word;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 0.9rem;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card-bg);
+      padding: 1rem;
+    }
+
+    .panel h2 {
+      font-family: 'Playfair Display', serif;
+      color: var(--bark);
+      margin-bottom: 0.65rem;
+      font-size: 1.2rem;
+    }
+
+    .panel-subtitle {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      min-height: 180px;
+      padding-top: 0.5rem;
+      border-bottom: 1px solid var(--line);
+      border-left: 1px solid var(--line);
+      padding-left: 0.4rem;
+      overflow-x: auto;
+    }
+
+    .bar-wrap {
+      min-width: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .bar {
+      width: 16px;
+      border-radius: 6px 6px 2px 2px;
+      background: linear-gradient(180deg, var(--chart-alt), var(--chart));
+      min-height: 2px;
+    }
+
+    .bar-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      max-height: 70px;
+      overflow: hidden;
+    }
+
+    .model-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .model-name {
+      font-size: 0.82rem;
+      color: var(--bark);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .progress {
+      grid-column: 1 / -1;
+      height: 8px;
+      border-radius: 999px;
+      background: #edf7f1;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--fern), var(--forest));
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card-bg);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 0.74rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--line);
+      background: #f9fffb;
+    }
+
+    tbody td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #eef8f2;
+      font-size: 0.85rem;
+      color: #244534;
+      white-space: nowrap;
+    }
+
+    .status-ok {
+      color: var(--forest);
+      font-weight: 600;
+    }
+
+    .status-error {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .error {
+      border: 1px solid #f2c0c0;
+      background: #fff3f3;
+      color: #8f1f1f;
+      border-radius: 10px;
+      padding: 0.8rem;
+      font-size: 0.9rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="nav-logo" href="/">Open<span>Claw</span></a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/health">Health</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <section class="hero">
+      <h1>LLM Usage Console</h1>
+      <p>Track requests, token consumption, estimated cost, and provider performance across OpenAI, Anthropic, and Gemini proxy traffic.</p>
+    </section>
+
+    <section class="toolbar">
+      <div>
+        <label for="rangeSelect">Time Range</label>
+        <select id="rangeSelect">
+          <option value="24h">Last 24 hours</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="90d">Last 90 days</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <span class="muted" id="lastUpdated">Not loaded</span>
+        <button id="refreshBtn" type="button">Refresh</button>
+      </div>
+    </section>
+
+    <section id="errorBox" class="error" style="display:none;"></section>
+
+    <section class="cards" id="kpiCards">
+      <article class="card"><p class="label">Requests</p><p class="value" id="kpiRequests">-</p></article>
+      <article class="card"><p class="label">Total Tokens</p><p class="value" id="kpiTokens">-</p></article>
+      <article class="card"><p class="label">Input Tokens</p><p class="value" id="kpiInput">-</p></article>
+      <article class="card"><p class="label">Output Tokens</p><p class="value" id="kpiOutput">-</p></article>
+      <article class="card"><p class="label">Estimated Cost (USD)</p><p class="value" id="kpiCost">-</p></article>
+      <article class="card"><p class="label">RPM / TPM (5m)</p><p class="value" id="kpiPerf">-</p></article>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <h2>Usage Trend</h2>
+        <p class="panel-subtitle">Requests and total tokens over time.</p>
+        <div class="bars" id="trendBars"></div>
+      </article>
+      <article class="panel">
+        <h2>Model Distribution</h2>
+        <p class="panel-subtitle">Token share by provider/model.</p>
+        <div id="modelDistribution"></div>
+      </article>
+    </section>
+
+    <section class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time (UTC)</th>
+            <th>Provider</th>
+            <th>Model</th>
+            <th>Endpoint</th>
+            <th>Status</th>
+            <th>Latency</th>
+            <th>Input</th>
+            <th>Output</th>
+            <th>Total</th>
+            <th>Cost (USD)</th>
+          </tr>
+        </thead>
+        <tbody id="requestRows"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const number = new Intl.NumberFormat('en-US');
+    const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+    function getToken() {
+      const url = new URL(window.location.href);
+      const fromQuery = url.searchParams.get('token');
+      const fromStorage = localStorage.getItem('openclaw_console_token');
+      const token = fromQuery || fromStorage || '';
+
+      if (fromQuery) {
+        localStorage.setItem('openclaw_console_token', fromQuery);
+      }
+
+      if (token) {
+        return token;
+      }
+
+      const entered = window.prompt('Enter CONSOLE_ADMIN_TOKEN');
+      if (entered) {
+        localStorage.setItem('openclaw_console_token', entered);
+        return entered;
+      }
+
+      return '';
+    }
+
+    const adminToken = getToken();
+
+    function authHeaders() {
+      return {
+        'x-admin-token': adminToken,
+      };
+    }
+
+    function getRangeBounds(rangeValue) {
+      const to = new Date();
+      const from = new Date(to);
+
+      if (rangeValue === '7d') {
+        from.setDate(from.getDate() - 7);
+      } else if (rangeValue === '30d') {
+        from.setDate(from.getDate() - 30);
+      } else if (rangeValue === '90d') {
+        from.setDate(from.getDate() - 90);
+      } else {
+        from.setHours(from.getHours() - 24);
+      }
+
+      return { from, to };
+    }
+
+    function setError(message) {
+      const box = document.getElementById('errorBox');
+      if (!message) {
+        box.style.display = 'none';
+        box.textContent = '';
+        return;
+      }
+
+      box.style.display = 'block';
+      box.textContent = message;
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url, {
+        headers: authHeaders(),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = payload?.error?.message || `Request failed (${response.status})`;
+        throw new Error(message);
+      }
+
+      return payload;
+    }
+
+    function renderKpis(summary, perf) {
+      document.getElementById('kpiRequests').textContent = number.format(summary.request_count || 0);
+      document.getElementById('kpiTokens').textContent = number.format(summary.total_tokens || 0);
+      document.getElementById('kpiInput').textContent = number.format(summary.input_tokens || 0);
+      document.getElementById('kpiOutput').textContent = number.format(summary.output_tokens || 0);
+      document.getElementById('kpiCost').textContent = currency.format(summary.estimated_cost_usd || 0);
+      document.getElementById('kpiPerf').textContent = `${perf.rpm || 0} / ${perf.tpm || 0}`;
+    }
+
+    function renderTrend(trend) {
+      const host = document.getElementById('trendBars');
+      host.innerHTML = '';
+      const points = trend.points || [];
+
+      if (points.length === 0) {
+        host.innerHTML = '<p class="muted">No data in selected range.</p>';
+        return;
+      }
+
+      const maxTokens = Math.max(...points.map((point) => point.total_tokens || 0), 1);
+
+      points.forEach((point) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'bar-wrap';
+
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        bar.style.height = `${Math.max(4, Math.round(((point.total_tokens || 0) / maxTokens) * 170))}px`;
+        bar.title = `${point.bucket_start}\nTokens: ${number.format(point.total_tokens || 0)}\nRequests: ${number.format(point.request_count || 0)}`;
+
+        const label = document.createElement('span');
+        label.className = 'bar-label';
+        label.textContent = new Date(point.bucket_start).toISOString().slice(5, 16).replace('T', ' ');
+
+        wrap.appendChild(bar);
+        wrap.appendChild(label);
+        host.appendChild(wrap);
+      });
+    }
+
+    function renderModelDistribution(data) {
+      const host = document.getElementById('modelDistribution');
+      host.innerHTML = '';
+
+      const rows = (data.rows || []).slice(0, 10);
+      if (rows.length === 0) {
+        host.innerHTML = '<p class="muted">No model usage yet.</p>';
+        return;
+      }
+
+      const maxTokens = Math.max(...rows.map((row) => row.total_tokens || 0), 1);
+
+      rows.forEach((row) => {
+        const entry = document.createElement('div');
+        entry.className = 'model-row';
+
+        const name = document.createElement('div');
+        name.className = 'model-name';
+        name.textContent = `${row.provider}/${row.model}`;
+
+        const value = document.createElement('div');
+        value.className = 'model-name';
+        value.textContent = number.format(row.total_tokens || 0);
+
+        const progress = document.createElement('div');
+        progress.className = 'progress';
+
+        const fill = document.createElement('span');
+        fill.style.width = `${Math.max(3, ((row.total_tokens || 0) / maxTokens) * 100)}%`;
+
+        progress.appendChild(fill);
+        entry.appendChild(name);
+        entry.appendChild(value);
+        entry.appendChild(progress);
+        host.appendChild(entry);
+      });
+    }
+
+    function renderRequests(data) {
+      const tbody = document.getElementById('requestRows');
+      tbody.innerHTML = '';
+
+      const rows = data.rows || [];
+      if (rows.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="10" class="muted">No requests in selected range.</td>';
+        tbody.appendChild(tr);
+        return;
+      }
+
+      rows.forEach((row) => {
+        const tr = document.createElement('tr');
+        const statusClass = row.status_code >= 200 && row.status_code < 400 ? 'status-ok' : 'status-error';
+        tr.innerHTML = `
+          <td>${new Date(row.created_at).toISOString().replace('T', ' ').slice(0, 19)}</td>
+          <td>${row.provider}</td>
+          <td>${row.model}</td>
+          <td>${row.endpoint}</td>
+          <td class="${statusClass}">${row.status_code}${row.error_code ? ` (${row.error_code})` : ''}</td>
+          <td>${number.format(row.latency_ms || 0)} ms</td>
+          <td>${number.format(row.input_tokens || 0)}</td>
+          <td>${number.format(row.output_tokens || 0)}</td>
+          <td>${number.format(row.total_tokens || 0)}</td>
+          <td>${currency.format(row.estimated_cost_usd || 0)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadDashboard() {
+      if (!adminToken) {
+        setError('A valid CONSOLE_ADMIN_TOKEN is required to view this page.');
+        return;
+      }
+
+      setError('');
+
+      const rangeValue = document.getElementById('rangeSelect').value;
+      const bounds = getRangeBounds(rangeValue);
+      const from = encodeURIComponent(bounds.from.toISOString());
+      const to = encodeURIComponent(bounds.to.toISOString());
+      const bucket = rangeValue === '24h' ? 'hour' : 'day';
+
+      try {
+        const [summary, trend, byModel, perf, requests] = await Promise.all([
+          fetchJson(`/api/usage/summary?from=${from}&to=${to}`),
+          fetchJson(`/api/usage/trend?from=${from}&to=${to}&bucket=${bucket}`),
+          fetchJson(`/api/usage/by-model?from=${from}&to=${to}`),
+          fetchJson('/api/usage/perf?window=5m'),
+          fetchJson(`/api/usage/requests?from=${from}&to=${to}&limit=25`),
+        ]);
+
+        renderKpis(summary, perf);
+        renderTrend(trend);
+        renderModelDistribution(byModel);
+        renderRequests(requests);
+
+        document.getElementById('lastUpdated').textContent = `Updated ${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`;
+      } catch (error) {
+        setError(error.message);
+      }
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
+    document.getElementById('rangeSelect').addEventListener('change', loadDashboard);
+
+    loadDashboard();
+    setInterval(loadDashboard, 30000);
+  </script>
+</body>
+</html>

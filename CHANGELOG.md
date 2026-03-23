@@ -12,3 +12,12 @@
 - Initial commit (cf657b2)
 
 All notable changes to this project will be documented in this file.
+
+## Unreleased
+
+- Added LLM proxy endpoints: `POST /v1/chat/completions`, `POST /v1/responses`, and `POST /api/llm/infer`.
+- Added protected analytics APIs under `/api/usage/*` and a protected `/console` dashboard.
+- Added Postgres-backed usage storage, model pricing seed data, and 90-day retention purge scheduling.
+- Added provider adapters for OpenAI, Anthropic, and Gemini with normalized usage extraction.
+- Added admin token authentication, proxy rate limiting, and upstream timeout/error handling.
+- Added tests for provider usage extraction, pricing logic, auth middleware, and protected route behavior.

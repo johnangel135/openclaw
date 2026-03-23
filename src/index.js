@@ -1,53 +1,29 @@
 'use strict';
 
-const express = require('express');
-const path = require('path');
+const { createApp } = require('./app');
+const { PORT, USAGE_RETENTION_DAYS } = require('./config');
+const { initDatabase, isDatabaseConfigured, startRetentionPurgeScheduler } = require('./db');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const app = createApp();
 
-// Serve static files from public directory
-app.use(express.static(PUBLIC_DIR));
-
-function getHealthData() {
-  return {
-    status: 'ok',
-    service: 'openclaw',
-    environment: process.env.NODE_ENV || 'development',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-  };
-}
-
-// Health endpoint
-app.get('/health', (req, res) => {
-  const healthData = getHealthData();
-  const acceptHeader = req.get('accept') || '';
-  const wantsHtml = acceptHeader.includes('text/html');
-  const wantsJson = req.query.format === 'json' || acceptHeader.includes('application/json');
-
-  res.set('Cache-Control', 'no-store');
-
-  if (wantsHtml && !wantsJson) {
-    return res.sendFile(path.join(PUBLIC_DIR, 'health.html'));
+async function bootstrap() {
+  if (isDatabaseConfigured()) {
+    try {
+      await initDatabase();
+      startRetentionPurgeScheduler(USAGE_RETENTION_DAYS);
+      console.log('Usage database initialized');
+    } catch (error) {
+      console.error('Failed to initialize usage database:', error.message);
+    }
+  } else {
+    console.warn('DATABASE_URL is not configured; LLM usage tracking endpoints will return 503');
   }
 
-  return res.json(healthData);
-});
+  app.listen(PORT, () => {
+    console.log(`🌿 OpenClaw server running on http://localhost:${PORT}`);
+  });
+}
 
-app.get('/health.json', (req, res) => {
-  res.set('Cache-Control', 'no-store');
-  res.json(getHealthData());
-});
-
-// Catch-all: serve index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
-});
-
-app.listen(PORT, () => {
-  console.log(`🌿 OpenClaw server running on http://localhost:${PORT}`);
-});
+bootstrap();
 
 module.exports = app;
