@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.4 - 2026-03-23
+
+- ci(cd): Use GHCR publish with QNAP watchtower auto-deploy (9ea9c07)
+
 ## v1.0.3 - 2026-03-23
 
 - ci(cd): Deploy on self-hosted QNAP runner (b0ab6d9)
