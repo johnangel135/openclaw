@@ -99,6 +99,18 @@
 
     .nav-links a:hover { color: var(--forest); }
 
+    .nav-console-mobile {
+      display: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #fff;
+      text-decoration: none;
+      background: var(--forest);
+      border: 1px solid #3c8a67;
+      border-radius: 999px;
+      padding: 0.4rem 0.8rem;
+    }
+
     /* ── Hero ────────────────────────────────────────────────── */
     .hero {
       position: relative;
@@ -362,6 +374,7 @@
     @media (max-width: 640px) {
       nav { padding: 1rem 1.25rem; }
       .nav-links { display: none; }
+      .nav-console-mobile { display: inline-flex; align-items: center; }
     }
   </style>
 </head>
@@ -415,6 +428,7 @@
       <li><a href="/console">Console</a></li>
       <li><a href="https://github.com/johnangel135/openclaw">GitHub</a></li>
     </ul>
+    <a class="nav-console-mobile" href="/console">Console</a>
   </nav>
 
   <!-- Hero -->
