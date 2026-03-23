@@ -11,7 +11,8 @@
 OpenClaw is a lightweight Express.js web application featuring:
 
 - **Nature-inspired landing page** — forest green palette, animated leaf SVGs, Google Fonts (Playfair Display + Inter), fully responsive
-- **Health endpoint** at `/health` — returns JSON with uptime and timestamp
+- **Health page** at `/health` — responsive status UI for humans
+- **Machine health JSON** at `/health.json` (or `/health?format=json`) — includes uptime and timestamp
 - **Docker image** — multi-stage build, non-root user, minimal footprint
 - **GitHub Actions CI** — lint → build → docker-build on every push/PR
 - **GitHub Actions CD** — auto-publish to `ghcr.io/johnangel135/openclaw` on merge to `main`
