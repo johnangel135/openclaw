@@ -2,26 +2,104 @@ name: Auto Release
 
 on:
   push:
-    branches: ["**"]
+    branches:
+      - main
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
 
 jobs:
   create-release:
-    name: Create GitHub Release
+    if: ${{ !contains(github.event.head_commit.message, '[skip release]') }}
+    name: Create Versioned Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Build release tag
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
         run: |
-          BRANCH_SAFE="${GITHUB_REF_NAME//\//-}"
-          SHORT_SHA="${GITHUB_SHA::7}"
-          echo "RELEASE_TAG=auto-${BRANCH_SAFE}-${GITHUB_RUN_NUMBER}-${SHORT_SHA}" >> "$GITHUB_ENV"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Compute next 1.x.x version
+        id: version
+        run: |
+          LATEST_TAG="$(git tag --list 'v1.*.*' --sort=-v:refname | head -n 1)"
+          if [ -z "$LATEST_TAG" ]; then
+            NEXT_TAG="v1.0.0"
+          else
+            VERSION_NO_V="${LATEST_TAG#v}"
+            MAJOR="${VERSION_NO_V%%.*}"
+            REST="${VERSION_NO_V#*.}"
+            MINOR="${REST%%.*}"
+            PATCH="${REST##*.}"
+            NEXT_PATCH=$((PATCH + 1))
+            NEXT_TAG="v${MAJOR}.${MINOR}.${NEXT_PATCH}"
+          fi
+          echo "latest=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+          echo "next=$NEXT_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build changelog entry
+        id: changelog
+        run: |
+          NEXT_TAG="${{ steps.version.outputs.next }}"
+          LATEST_TAG="${{ steps.version.outputs.latest }}"
+          TODAY="$(date -u +%Y-%m-%d)"
+
+          if [ -n "$LATEST_TAG" ]; then
+            LOG_RANGE="${LATEST_TAG}..HEAD"
+          else
+            LOG_RANGE="HEAD"
+          fi
+
+          COMMITS="$(git log --pretty=format:'- %s (%h)' $LOG_RANGE)"
+          if [ -z "$COMMITS" ]; then
+            COMMITS="- No user-facing changes."
+          fi
+
+          {
+            echo "## ${NEXT_TAG} - ${TODAY}"
+            echo
+            echo "$COMMITS"
+            echo
+          } > .release-notes.md
+
+          if [ ! -f CHANGELOG.md ]; then
+            {
+              echo "# Changelog"
+              echo
+            } > CHANGELOG.md
+          fi
+
+          {
+            echo "# Changelog"
+            echo
+            cat .release-notes.md
+            awk 'NR>2' CHANGELOG.md
+          } > CHANGELOG.new.md
+          mv CHANGELOG.new.md CHANGELOG.md
+
+      - name: Commit changelog
+        run: |
+          if git diff --quiet CHANGELOG.md; then
+            echo "No CHANGELOG.md changes to commit."
+            exit 0
+          fi
+          git add CHANGELOG.md
+          git commit -m "chore(release): ${{ steps.version.outputs.next }} [skip release]"
+          git push origin HEAD:main
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: Auto Release ${{ env.RELEASE_TAG }}
-          target_commitish: ${{ github.sha }}
-          generate_release_notes: true
+          tag_name: ${{ steps.version.outputs.next }}
+          name: Release ${{ steps.version.outputs.next }}
+          target_commitish: ${{ github.ref_name }}
+          body_path: .release-notes.md

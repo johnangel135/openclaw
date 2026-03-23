@@ -18,7 +18,7 @@ OpenClaw is a lightweight Express.js web application featuring:
 - **GitHub Actions CI** — lint → build → docker-build on every push/PR
 - **GitHub Actions CD** — auto-publish to `ghcr.io/johnangel135/openclaw` on merge to `main`
 - **Render redeploy trigger** — CD calls your Render deploy hook after image push
-- **GitHub Auto Release** — publishes a GitHub Release on every push
+- **GitHub Auto Release** — publishes `v1.x.x` GitHub Releases on each `main` push and updates `CHANGELOG.md`
 - **Uptime monitor** — GitHub Actions checks `/health` every 10 minutes
 - **Node.js runtime pinned** — Node `20.x` via `engines` and `.nvmrc`
 
@@ -52,6 +52,7 @@ docker run -p 3000:3000 ghcr.io/johnangel135/openclaw:latest
 ├── .dockerignore
 ├── .eslintrc.json
 ├── .nvmrc
+├── CHANGELOG.md
 └── package.json
 ```
 
