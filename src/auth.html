@@ -1,38 +1,109 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>OpenClaw Login</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenClaw — Account Access</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
-    body{font-family:Inter,system-ui,sans-serif;max-width:420px;margin:40px auto;padding:16px}
-    h1{margin-bottom:8px} .muted{color:#556; margin-bottom:16px}
-    .box{border:1px solid #dde3f4;border-radius:12px;padding:14px;margin-bottom:12px}
-    input{width:100%;padding:10px;border:1px solid #c9d3f1;border-radius:8px;margin:6px 0 10px}
-    button{padding:10px 14px;border-radius:8px;border:1px solid #264db6;background:#2b61f0;color:#fff;cursor:pointer}
-    #msg{margin-top:10px;color:#0a6} #err{margin-top:10px;color:#b00}
+    :root {
+      --forest:#2d6a4f; --fern:#52b788; --mint:#b7e4c7; --dew:#d8f3dc;
+      --bark:#1b4332; --sky:#f0fdf4; --text:#1a2e22; --muted:#4a7c59;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:var(--sky);color:var(--text);min-height:100vh}
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1rem 1.5rem; background:rgba(240,253,244,.88); backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--mint);
+    }
+    .nav-logo{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--forest);text-decoration:none}
+    .nav-logo span{color:var(--fern)}
+
+    .hero {
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: linear-gradient(160deg,var(--bark) 0%,var(--forest) 40%,#40916c 70%,var(--fern) 100%);
+      padding:6rem 1rem 2rem;
+    }
+
+    .panel {
+      width:min(950px,100%); background:rgba(255,255,255,.96); border:1px solid var(--mint);
+      border-radius:20px; box-shadow:0 24px 60px rgba(0,0,0,.15); overflow:hidden;
+      display:grid; grid-template-columns:1fr 1fr;
+    }
+
+    .intro {
+      padding:2rem; background:linear-gradient(165deg,#f8fff9,#eefaf2);
+      border-right:1px solid var(--mint);
+    }
+    .intro h1{font-family:'Playfair Display',serif;color:var(--bark);font-size:2rem;margin-bottom:.8rem}
+    .intro p{color:var(--muted);line-height:1.7}
+
+    .forms { padding:1.2rem; display:grid; gap:.9rem; }
+    .box{border:1px solid #d6eadf; border-radius:14px; padding:1rem; background:#fff}
+    .box h3{font-family:'Playfair Display',serif;color:var(--bark);margin-bottom:.55rem}
+    .muted{color:var(--muted);font-size:.88rem}
+
+    input{
+      width:100%; padding:.7rem .75rem; border:1px solid #c5dfd0; border-radius:10px;
+      margin:.4rem 0 .65rem; font:inherit;
+    }
+    input:focus{outline:none;border-color:var(--fern);box-shadow:0 0 0 3px rgba(82,183,136,.15)}
+
+    button{
+      width:100%; padding:.7rem .9rem; border:none; border-radius:999px;
+      background:var(--forest); color:#fff; font-weight:600; cursor:pointer;
+    }
+    button:hover{background:#24533e}
+
+    #msg,#err{font-size:.9rem;padding:.25rem .2rem}
+    #msg{color:#1f7a4e} #err{color:#a32020}
+
+    @media (max-width: 860px) {
+      .panel{grid-template-columns:1fr}
+      .intro{border-right:none;border-bottom:1px solid var(--mint)}
+    }
   </style>
 </head>
 <body>
-  <h1>OpenClaw Account</h1>
-  <div class="muted">Sign up or login to access Console.</div>
+  <nav>
+    <a class="nav-logo" href="/">Open<span>Claw</span></a>
+  </nav>
 
-  <div class="box">
-    <h3>Sign up</h3>
-    <input id="suEmail" placeholder="email"/>
-    <input id="suPass" type="password" placeholder="password (8+ chars)"/>
-    <button onclick="signup()">Create account</button>
-  </div>
+  <section class="hero">
+    <div class="panel">
+      <div class="intro">
+        <h1>Account Access</h1>
+        <p>Same OpenClaw look, now with account-based access.
+          Sign up once, login, then manage your provider keys in Console.</p>
+      </div>
 
-  <div class="box">
-    <h3>Login</h3>
-    <input id="liEmail" placeholder="email"/>
-    <input id="liPass" type="password" placeholder="password"/>
-    <button onclick="login()">Login</button>
-  </div>
+      <div class="forms">
+        <div class="box">
+          <h3>Sign up</h3>
+          <div class="muted">Create your account</div>
+          <input id="suEmail" placeholder="email" />
+          <input id="suPass" type="password" placeholder="password (8+ chars)" />
+          <button onclick="signup()">Create account</button>
+        </div>
 
-  <div id="msg"></div>
-  <div id="err"></div>
+        <div class="box">
+          <h3>Login</h3>
+          <div class="muted">Use existing credentials</div>
+          <input id="liEmail" placeholder="email" />
+          <input id="liPass" type="password" placeholder="password" />
+          <button onclick="login()">Login</button>
+        </div>
+
+        <div id="msg"></div>
+        <div id="err"></div>
+      </div>
+    </div>
+  </section>
 
   <script>
     function setMessage(msg){document.getElementById('msg').textContent=msg;document.getElementById('err').textContent='';}
@@ -44,8 +115,8 @@
       const res=await fetch('/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
       const data=await res.json().catch(()=>({}));
       if(!res.ok){setError(data?.error?.message||'Signup failed');return;}
-      setMessage('Account created. You are logged in. Redirecting...');
-      setTimeout(()=>location.href='/console',500);
+      setMessage('Account created. Redirecting...');
+      setTimeout(()=>location.href='/console',450);
     }
 
     async function login(){
