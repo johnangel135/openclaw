@@ -17,7 +17,7 @@ OpenClaw is a lightweight Express.js web application featuring:
 - **Docker image** — multi-stage build, non-root user, minimal footprint
 - **GitHub Actions CI** — lint → test → build → docker-build on every push/PR
 - **GitHub Actions CD** — auto-publish to `ghcr.io/johnangel135/openclaw` on merge to `main`
-- **QNAP redeploy trigger** — CD SSHes into your NAS and redeploys `latest` after image push
+- **QNAP redeploy trigger** — CD deploys on a self-hosted QNAP runner after image push
 - **GitHub Auto Release** — publishes `v1.x.x` GitHub Releases on each `main` push and updates `CHANGELOG.md`
 - **Uptime monitor** — GitHub Actions checks `/health` every 10 minutes
 - **Node.js runtime pinned** — Node `20.x` via `engines` and `.nvmrc`
@@ -106,13 +106,10 @@ ghcr.io/johnangel135/openclaw:latest
 ghcr.io/johnangel135/openclaw:<git-sha>
 ```
 
-## QNAP CD Secrets
+## QNAP CD Setup
 
-Set these repository secrets so `.github/workflows/cd.yml` can deploy to your NAS:
-
-- `QNAP_HOST` (example: `192.168.68.71`)
-- `QNAP_USER` (example: `hhdtruong`)
-- `QNAP_SSH_PRIVATE_KEY` (private key content used by GitHub Actions)
+Configure a self-hosted GitHub Actions runner on your QNAP with the `qnap` label.
+The CD workflow uses `runs-on: [self-hosted, qnap]` for deployment.
 
 ## License
 
