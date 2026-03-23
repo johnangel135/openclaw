@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.5 - 2026-03-23
+
+- docs: Add AGENTS.md with QNAP and GitHub ops context (c326307)
+
 ## v1.0.4 - 2026-03-23
 
 - ci(cd): Use GHCR publish with QNAP watchtower auto-deploy (9ea9c07)
