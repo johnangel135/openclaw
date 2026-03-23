@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.11 - 2026-03-23
+
+- fix(mobile): show console button in navbar on small screens (ecc1f97)
+
 ## v1.0.10 - 2026-03-23
 
 - fix(auth): persist accounts in Postgres for container-safe signup (52e6162)
