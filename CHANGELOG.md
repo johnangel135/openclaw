@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.6 - 2026-03-23
+
+- revert(docs): Remove AGENTS.md from repository (ed2806d)
+
 ## v1.0.5 - 2026-03-23
 
 - docs: Add AGENTS.md with QNAP and GitHub ops context (c326307)
