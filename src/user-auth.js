@@ -1,35 +1,48 @@
 'use strict';
 
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const { Pool } = require('pg');
+const { DATABASE_URL } = require('./config');
 
-const STORE_PATH = path.join(__dirname, '..', 'db', 'users.json');
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const sessions = new Map();
+let pool;
+let initialized = false;
 
-function ensureStore() {
-  const dir = path.dirname(STORE_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+function getPool() {
+  if (!DATABASE_URL) {
+    throw new Error('DATABASE_URL is not configured');
   }
-  if (!fs.existsSync(STORE_PATH)) {
-    fs.writeFileSync(STORE_PATH, JSON.stringify({ users: [] }, null, 2));
-  }
-}
+  if (pool) return pool;
 
-function readStore() {
-  ensureStore();
+  let ssl = { rejectUnauthorized: false };
   try {
-    return JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'));
+    const parsed = new URL(DATABASE_URL);
+    const isLocal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    if (isLocal || process.env.PGSSLMODE === 'disable') ssl = false;
   } catch {
-    return { users: [] };
+    if (process.env.PGSSLMODE === 'disable') ssl = false;
   }
+
+  pool = new Pool({ connectionString: DATABASE_URL, ssl });
+  return pool;
 }
 
-function writeStore(data) {
-  ensureStore();
-  fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2));
+async function ensureUsersTable() {
+  if (initialized) return;
+  const db = getPool();
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS user_accounts (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      api_openai TEXT NOT NULL DEFAULT '',
+      api_anthropic TEXT NOT NULL DEFAULT '',
+      api_gemini TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  initialized = true;
 }
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
@@ -44,66 +57,74 @@ function verifyPassword(password, digest) {
   return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(check, 'hex'));
 }
 
-function sanitizeUser(user) {
+function sanitizeUser(row) {
   return {
-    id: user.id,
-    email: user.email,
-    created_at: user.created_at,
+    id: row.id,
+    email: row.email,
+    created_at: row.created_at,
   };
 }
 
-function createUser(email, password) {
+async function createUser(email, password) {
+  await ensureUsersTable();
+
   const safeEmail = String(email || '').trim().toLowerCase();
   if (!safeEmail || !password || String(password).length < 8) {
     throw new Error('Email and password (8+ chars) are required');
   }
 
-  const store = readStore();
-  if (store.users.some((user) => user.email === safeEmail)) {
-    throw new Error('User already exists');
+  const db = getPool();
+  const id = crypto.randomUUID();
+  const digest = hashPassword(password);
+
+  try {
+    const result = await db.query(
+      `
+      INSERT INTO user_accounts (id, email, password_hash)
+      VALUES ($1, $2, $3)
+      RETURNING id, email, created_at
+      `,
+      [id, safeEmail, digest],
+    );
+    return sanitizeUser(result.rows[0]);
+  } catch (error) {
+    if (String(error.message).toLowerCase().includes('unique')) {
+      throw new Error('User already exists');
+    }
+    throw error;
   }
-
-  const user = {
-    id: crypto.randomUUID(),
-    email: safeEmail,
-    password_hash: hashPassword(password),
-    api_keys: {
-      openai: '',
-      anthropic: '',
-      gemini: '',
-    },
-    created_at: new Date().toISOString(),
-  };
-
-  store.users.push(user);
-  writeStore(store);
-  return sanitizeUser(user);
 }
 
-function authenticateUser(email, password) {
+async function authenticateUser(email, password) {
+  await ensureUsersTable();
   const safeEmail = String(email || '').trim().toLowerCase();
-  const store = readStore();
-  const user = store.users.find((entry) => entry.email === safeEmail);
-  if (!user || !verifyPassword(password, user.password_hash)) {
+  const db = getPool();
+  const result = await db.query(
+    'SELECT id, email, password_hash, created_at FROM user_accounts WHERE email = $1 LIMIT 1',
+    [safeEmail],
+  );
+
+  const row = result.rows[0];
+  if (!row || !verifyPassword(password, row.password_hash)) {
     return null;
   }
-  return sanitizeUser(user);
+
+  return sanitizeUser(row);
 }
 
-function getUserById(userId) {
-  const store = readStore();
-  const user = store.users.find((entry) => entry.id === userId);
-  return user ? sanitizeUser(user) : null;
-}
-
-function getUserApiKeys(userId) {
-  const store = readStore();
-  const user = store.users.find((entry) => entry.id === userId);
-  if (!user) return null;
+async function getUserApiKeys(userId) {
+  await ensureUsersTable();
+  const db = getPool();
+  const result = await db.query(
+    'SELECT api_openai, api_anthropic, api_gemini FROM user_accounts WHERE id = $1 LIMIT 1',
+    [userId],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
   return {
-    openai: user.api_keys?.openai || '',
-    anthropic: user.api_keys?.anthropic || '',
-    gemini: user.api_keys?.gemini || '',
+    openai: row.api_openai || '',
+    anthropic: row.api_anthropic || '',
+    gemini: row.api_gemini || '',
   };
 }
 
@@ -119,22 +140,26 @@ function maskApiKeys(apiKeys) {
   return out;
 }
 
-function updateUserApiKeys(userId, updates) {
-  const store = readStore();
-  const user = store.users.find((entry) => entry.id === userId);
-  if (!user) {
-    throw new Error('User not found');
-  }
-
-  user.api_keys = user.api_keys || {};
-  for (const provider of ['openai', 'anthropic', 'gemini']) {
-    if (typeof updates?.[provider] === 'string') {
-      user.api_keys[provider] = updates[provider].trim();
-    }
-  }
-
-  writeStore(store);
-  return maskApiKeys(user.api_keys);
+async function updateUserApiKeys(userId, updates) {
+  await ensureUsersTable();
+  const db = getPool();
+  await db.query(
+    `
+    UPDATE user_accounts
+    SET
+      api_openai = COALESCE($2, api_openai),
+      api_anthropic = COALESCE($3, api_anthropic),
+      api_gemini = COALESCE($4, api_gemini)
+    WHERE id = $1
+    `,
+    [
+      userId,
+      typeof updates?.openai === 'string' ? updates.openai.trim() : null,
+      typeof updates?.anthropic === 'string' ? updates.anthropic.trim() : null,
+      typeof updates?.gemini === 'string' ? updates.gemini.trim() : null,
+    ],
+  );
+  return maskApiKeys(await getUserApiKeys(userId));
 }
 
 function parseCookies(req) {
@@ -148,10 +173,10 @@ function parseCookies(req) {
   return cookies;
 }
 
-function createSession(userId) {
+function createSession(user) {
   const token = crypto.randomBytes(24).toString('hex');
   sessions.set(token, {
-    userId,
+    user,
     expiresAt: Date.now() + SESSION_TTL_MS,
   });
   return token;
@@ -166,7 +191,7 @@ function getSessionUser(req) {
     sessions.delete(token);
     return null;
   }
-  return getUserById(session.userId);
+  return session.user || null;
 }
 
 function setSessionCookie(res, token) {
@@ -175,24 +200,16 @@ function setSessionCookie(res, token) {
 
 function clearSessionCookie(req, res) {
   const token = parseCookies(req).openclaw_session;
-  if (token) {
-    sessions.delete(token);
-  }
+  if (token) sessions.delete(token);
   res.setHeader('Set-Cookie', 'openclaw_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
 }
 
 function requireUserSession(req, res, next) {
   const user = getSessionUser(req);
   if (!user) {
-    res.status(401).json({
-      error: {
-        message: 'Login required',
-        code: 'unauthorized',
-      },
-    });
+    res.status(401).json({ error: { message: 'Login required', code: 'unauthorized' } });
     return;
   }
-
   req.user = user;
   next();
 }

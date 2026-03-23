@@ -183,8 +183,8 @@ function createApp() {
   app.post('/auth/signup', asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
     try {
-      const user = createUser(email, password);
-      const token = createSession(user.id);
+      const user = await createUser(email, password);
+      const token = createSession(user);
       setSessionCookie(res, token);
       res.status(201).json({ user });
     } catch (error) {
@@ -195,12 +195,12 @@ function createApp() {
 
   app.post('/auth/login', asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
-    const user = authenticateUser(email, password);
+    const user = await authenticateUser(email, password);
     if (!user) {
       res.status(401).json({ error: { message: 'Invalid email/password', code: 'unauthorized' } });
       return;
     }
-    const token = createSession(user.id);
+    const token = createSession(user);
     setSessionCookie(res, token);
     res.json({ user });
   }));
@@ -256,15 +256,15 @@ function createApp() {
   app.use('/api/user/infer', requireUserSession, proxyRateLimiter);
   app.use('/api/user/usage', requireUserSession);
 
-  app.get('/api/user/api-keys', requireUserSession, (req, res) => {
-    const keys = getUserApiKeys(req.user.id) || {};
+  app.get('/api/user/api-keys', requireUserSession, asyncHandler(async (req, res) => {
+    const keys = await getUserApiKeys(req.user.id) || {};
     res.json({ keys: maskApiKeys(keys) });
-  });
+  }));
 
-  app.post('/api/user/api-keys', requireUserSession, (req, res) => {
-    const keys = updateUserApiKeys(req.user.id, req.body || {});
+  app.post('/api/user/api-keys', requireUserSession, asyncHandler(async (req, res) => {
+    const keys = await updateUserApiKeys(req.user.id, req.body || {});
     res.json({ keys });
-  });
+  }));
 
   app.post('/api/llm/infer', asyncHandler(async (req, res) => {
     if (!requireDatabase(res)) {
@@ -295,7 +295,7 @@ function createApp() {
     }
 
     const inferPayload = req.body || {};
-    const userKeys = getUserApiKeys(req.user.id) || {};
+    const userKeys = await getUserApiKeys(req.user.id) || {};
     const result = await runProxyAndTrack({
       inferPayload,
       endpointName: '/api/user/infer',
