@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.8 - 2026-03-23
+
+- Add account auth and user API-key managed console access (73efbb3)
+
 ## v1.0.7 - 2026-03-23
 
 - ci(cd): Roll back deployment trigger to Render (35aca95)
