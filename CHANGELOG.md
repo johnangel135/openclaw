@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.1 - 2026-03-23
+
+- Implement LLM token and cost console with provider proxy (dbee1b5)
+
 ## v1.0.0 - 2026-03-23
 
 - Use v1.x.x auto releases with changelog updates (6592f6a)
