@@ -1,0 +1,17 @@
+name: Uptime Monitor
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  healthcheck:
+    name: Check /health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check production health endpoint
+        env:
+          TARGET_URL: https://www.johntruong.it.com/health
+        run: |
+          curl --fail --silent --show-error --location --max-time 20 "$TARGET_URL"

@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/johnangel135/openclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/johnangel135/openclaw/actions/workflows/ci.yml)
 [![CD](https://github.com/johnangel135/openclaw/actions/workflows/cd.yml/badge.svg)](https://github.com/johnangel135/openclaw/actions/workflows/cd.yml)
+[![Uptime](https://github.com/johnangel135/openclaw/actions/workflows/uptime.yml/badge.svg)](https://github.com/johnangel135/openclaw/actions/workflows/uptime.yml)
 
 ## Overview
 
@@ -14,6 +15,8 @@ OpenClaw is a lightweight Express.js web application featuring:
 - **Docker image** — multi-stage build, non-root user, minimal footprint
 - **GitHub Actions CI** — lint → build → docker-build on every push/PR
 - **GitHub Actions CD** — auto-publish to `ghcr.io/johnangel135/openclaw` on merge to `main`
+- **Uptime monitor** — GitHub Actions checks `/health` every 10 minutes
+- **Node.js runtime pinned** — Node `20.x` via `engines` and `.nvmrc`
 
 ## Quick Start
 
@@ -38,10 +41,12 @@ docker run -p 3000:3000 ghcr.io/johnangel135/openclaw:latest
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml        # CI pipeline
-│       └── cd.yml        # CD pipeline (GHCR push)
+│       ├── cd.yml        # CD pipeline (GHCR push)
+│       └── uptime.yml    # Scheduled /health checks
 ├── Dockerfile
 ├── .dockerignore
 ├── .eslintrc.json
+├── .nvmrc
 └── package.json
 ```
 

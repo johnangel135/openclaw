@@ -5,3 +5,7 @@ npm-debug.log*
 *.log
 dist/
 .DS_Store
+slack_token.txt
+slack_user_token.txt
+slack_config.json
+slack_user_config.json
