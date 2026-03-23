@@ -36,26 +36,3 @@ jobs:
             ghcr.io/johnangel135/openclaw:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy-on-qnap:
-    name: Deploy on QNAP Runner
-    needs: build-and-push
-    runs-on: [self-hosted, qnap]
-    permissions:
-      contents: read
-      packages: read
-
-    steps:
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pull and restart app container
-        run: |
-          set -euo pipefail
-          docker pull ghcr.io/johnangel135/openclaw:latest
-          docker rm -f openclaw || true
-          docker run -d --name openclaw --restart unless-stopped -p 3000:3000 ghcr.io/johnangel135/openclaw:latest
