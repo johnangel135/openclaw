@@ -11,9 +11,23 @@
     :root {
       --forest:#2d6a4f; --fern:#52b788; --mint:#b7e4c7; --dew:#d8f3dc;
       --bark:#1b4332; --sky:#f0fdf4; --text:#1a2e22; --muted:#4a7c59;
+      --danger:#a32020;
     }
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Inter',sans-serif;background:var(--sky);color:var(--text);min-height:100vh}
+
+    .skip-link {
+      position: absolute;
+      left: 8px;
+      top: -100px;
+      background: #fff;
+      border: 1px solid var(--mint);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      z-index: 999;
+      color: var(--bark);
+    }
+    .skip-link:focus { top: 8px; }
 
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 50;
@@ -31,7 +45,7 @@
     }
 
     .panel {
-      width:min(950px,100%); background:rgba(255,255,255,.96); border:1px solid var(--mint);
+      width:min(980px,100%); background:rgba(255,255,255,.96); border:1px solid var(--mint);
       border-radius:20px; box-shadow:0 24px 60px rgba(0,0,0,.15); overflow:hidden;
       display:grid; grid-template-columns:1fr 1fr;
     }
@@ -42,26 +56,37 @@
     }
     .intro h1{font-family:'Playfair Display',serif;color:var(--bark);font-size:2rem;margin-bottom:.8rem}
     .intro p{color:var(--muted);line-height:1.7}
+    .intro ul{margin:1rem 0 0 1.2rem;color:var(--muted);line-height:1.7;font-size:.94rem}
 
-    .forms { padding:1.2rem; display:grid; gap:.9rem; }
+    .forms { padding:1.2rem; display:grid; gap:.9rem; align-content:start; }
     .box{border:1px solid #d6eadf; border-radius:14px; padding:1rem; background:#fff}
-    .box h3{font-family:'Playfair Display',serif;color:var(--bark);margin-bottom:.55rem}
+    .box h2{font-family:'Playfair Display',serif;color:var(--bark);margin-bottom:.2rem;font-size:1.25rem}
     .muted{color:var(--muted);font-size:.88rem}
+
+    label {
+      display: block;
+      color: var(--bark);
+      font-size: .86rem;
+      font-weight: 600;
+      margin-top: .75rem;
+    }
 
     input{
       width:100%; padding:.7rem .75rem; border:1px solid #c5dfd0; border-radius:10px;
-      margin:.4rem 0 .65rem; font:inherit;
+      margin:.35rem 0 .2rem; font:inherit;
     }
     input:focus{outline:none;border-color:var(--fern);box-shadow:0 0 0 3px rgba(82,183,136,.15)}
 
     button{
       width:100%; padding:.7rem .9rem; border:none; border-radius:999px;
-      background:var(--forest); color:#fff; font-weight:600; cursor:pointer;
+      background:var(--forest); color:#fff; font-weight:600; cursor:pointer; margin-top:.75rem;
     }
     button:hover{background:#24533e}
+    button:disabled{opacity:.55;cursor:not-allowed}
 
-    #msg,#err{font-size:.9rem;padding:.25rem .2rem}
-    #msg{color:#1f7a4e} #err{color:#a32020}
+    #status{font-size:.92rem;padding:.3rem .2rem;min-height:1.5rem}
+    .status-ok{color:#1f7a4e}
+    .status-error{color:var(--danger)}
 
     @media (max-width: 860px) {
       .panel{grid-template-columns:1fr}
@@ -70,64 +95,121 @@
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#auth-main">Skip to account forms</a>
   <nav>
     <a class="nav-logo" href="/">Open<span>Claw</span></a>
   </nav>
 
-  <section class="hero">
+  <main id="auth-main" class="hero">
     <div class="panel">
-      <div class="intro">
-        <h1>Account Access</h1>
-        <p>Same OpenClaw look, now with account-based access.
-          Sign up once, login, then manage your provider keys in Console.</p>
-      </div>
+      <section class="intro" aria-labelledby="auth-title">
+        <h1 id="auth-title">Account Access</h1>
+        <p>Sign in to use your personal provider keys and track usage in your private console.</p>
+        <ul>
+          <li>Create one account per workspace.</li>
+          <li>Your session is stored in a secure cookie.</li>
+          <li>After login, add your provider keys in Console → Your API Keys.</li>
+        </ul>
+      </section>
 
-      <div class="forms">
-        <div class="box">
-          <h3>Sign up</h3>
-          <div class="muted">Create your account</div>
-          <input id="suEmail" placeholder="email" />
-          <input id="suPass" type="password" placeholder="password (8+ chars)" />
-          <button onclick="signup()">Create account</button>
-        </div>
+      <section class="forms" aria-label="Authentication forms">
+        <form class="box" id="signupForm">
+          <h2>Sign up</h2>
+          <div class="muted">New to OpenClaw? Start here.</div>
+          <label for="suEmail">Email</label>
+          <input id="suEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
+          <label for="suPass">Password</label>
+          <input id="suPass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required />
+          <button id="signupBtn" type="submit">Create account</button>
+        </form>
 
-        <div class="box">
-          <h3>Login</h3>
-          <div class="muted">Use existing credentials</div>
-          <input id="liEmail" placeholder="email" />
-          <input id="liPass" type="password" placeholder="password" />
-          <button onclick="login()">Login</button>
-        </div>
+        <form class="box" id="loginForm">
+          <h2>Login</h2>
+          <div class="muted">Already have an account? Welcome back.</div>
+          <label for="liEmail">Email</label>
+          <input id="liEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
+          <label for="liPass">Password</label>
+          <input id="liPass" name="password" type="password" autocomplete="current-password" placeholder="Your password" required />
+          <button id="loginBtn" type="submit">Login</button>
+        </form>
 
-        <div id="msg"></div>
-        <div id="err"></div>
-      </div>
+        <div id="status" role="status" aria-live="polite"></div>
+      </section>
     </div>
-  </section>
+  </main>
 
   <script>
-    function setMessage(msg){document.getElementById('msg').textContent=msg;document.getElementById('err').textContent='';}
-    function setError(msg){document.getElementById('err').textContent=msg;document.getElementById('msg').textContent='';}
+    const statusEl = document.getElementById('status');
+    const signupBtn = document.getElementById('signupBtn');
+    const loginBtn = document.getElementById('loginBtn');
 
-    async function signup(){
-      const email=document.getElementById('suEmail').value;
-      const password=document.getElementById('suPass').value;
-      const res=await fetch('/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-      const data=await res.json().catch(()=>({}));
-      if(!res.ok){setError(data?.error?.message||'Signup failed');return;}
-      setMessage('Account created. Redirecting...');
-      setTimeout(()=>location.href='/console',450);
+    function setStatus(msg, kind = 'ok') {
+      statusEl.className = kind === 'error' ? 'status-error' : 'status-ok';
+      statusEl.textContent = msg || '';
     }
 
-    async function login(){
-      const email=document.getElementById('liEmail').value;
-      const password=document.getElementById('liPass').value;
-      const res=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-      const data=await res.json().catch(()=>({}));
-      if(!res.ok){setError(data?.error?.message||'Login failed');return;}
-      setMessage('Login success. Redirecting...');
-      setTimeout(()=>location.href='/console',300);
+    function setBusy(button, busy, textBusy, textIdle) {
+      button.disabled = busy;
+      button.textContent = busy ? textBusy : textIdle;
     }
+
+    async function postJson(url, payload) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error?.message || 'Request failed');
+      }
+      return data;
+    }
+
+    async function signup(event) {
+      event.preventDefault();
+      const email = document.getElementById('suEmail').value.trim();
+      const password = document.getElementById('suPass').value;
+      if (!email || !password) {
+        setStatus('Please enter email and password.', 'error');
+        return;
+      }
+      setBusy(signupBtn, true, 'Creating account…', 'Create account');
+      setStatus('Creating account…');
+      try {
+        await postJson('/auth/signup', { email, password });
+        setStatus('Account created. Redirecting to console…');
+        setTimeout(() => { location.href = '/console'; }, 450);
+      } catch (error) {
+        setStatus(error.message || 'Signup failed', 'error');
+      } finally {
+        setBusy(signupBtn, false, 'Creating account…', 'Create account');
+      }
+    }
+
+    async function login(event) {
+      event.preventDefault();
+      const email = document.getElementById('liEmail').value.trim();
+      const password = document.getElementById('liPass').value;
+      if (!email || !password) {
+        setStatus('Please enter email and password.', 'error');
+        return;
+      }
+      setBusy(loginBtn, true, 'Logging in…', 'Login');
+      setStatus('Logging in…');
+      try {
+        await postJson('/auth/login', { email, password });
+        setStatus('Login successful. Redirecting…');
+        setTimeout(() => { location.href = '/console'; }, 300);
+      } catch (error) {
+        setStatus(error.message || 'Login failed', 'error');
+      } finally {
+        setBusy(loginBtn, false, 'Logging in…', 'Login');
+      }
+    }
+
+    document.getElementById('signupForm').addEventListener('submit', signup);
+    document.getElementById('loginForm').addEventListener('submit', login);
   </script>
 </body>
 </html>

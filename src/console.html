@@ -20,13 +20,11 @@
       --line: #d8efe1;
       --chart: #3aa776;
       --chart-alt: #4ea8de;
+      --info: #22577a;
+      --info-bg: #edf7ff;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Inter', sans-serif;
@@ -56,9 +54,7 @@
       font-weight: 700;
     }
 
-    .nav-logo span {
-      color: var(--fern);
-    }
+    .nav-logo span { color: var(--fern); }
 
     .nav-links {
       display: flex;
@@ -113,11 +109,7 @@
       padding: 0.8rem 1rem;
     }
 
-    .toolbar label {
-      font-size: 0.84rem;
-      color: var(--muted);
-      font-weight: 600;
-    }
+    .toolbar label { font-size: 0.84rem; color: var(--muted); font-weight: 600; }
 
     select, button {
       border: 1px solid var(--mint);
@@ -135,6 +127,8 @@
       border-color: var(--forest);
       font-weight: 600;
     }
+
+    button:disabled { opacity: .6; cursor: not-allowed; }
 
     .cards {
       display: grid;
@@ -165,11 +159,7 @@
       word-break: break-word;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 0.9rem;
-    }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 0.9rem; }
 
     .panel {
       border: 1px solid var(--line);
@@ -185,11 +175,7 @@
       font-size: 1.2rem;
     }
 
-    .panel-subtitle {
-      color: var(--muted);
-      font-size: 0.82rem;
-      margin-bottom: 0.8rem;
-    }
+    .panel-subtitle { color: var(--muted); font-size: 0.82rem; margin-bottom: 0.8rem; }
 
     .bars {
       display: flex;
@@ -203,20 +189,8 @@
       overflow-x: auto;
     }
 
-    .bar-wrap {
-      min-width: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.35rem;
-    }
-
-    .bar {
-      width: 16px;
-      border-radius: 6px 6px 2px 2px;
-      background: linear-gradient(180deg, var(--chart-alt), var(--chart));
-      min-height: 2px;
-    }
+    .bar-wrap { min-width: 16px; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+    .bar { width: 16px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, var(--chart-alt), var(--chart)); min-height: 2px; }
 
     .bar-label {
       font-size: 0.65rem;
@@ -253,24 +227,11 @@
       border: 1px solid var(--line);
     }
 
-    .progress > span {
-      display: block;
-      height: 100%;
-      background: linear-gradient(90deg, var(--fern), var(--forest));
-    }
+    .progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--fern), var(--forest)); }
 
-    .table-wrap {
-      overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: var(--card-bg);
-    }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--card-bg); }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 860px;
-    }
+    table { width: 100%; border-collapse: collapse; min-width: 860px; }
 
     thead th {
       text-align: left;
@@ -291,15 +252,8 @@
       white-space: nowrap;
     }
 
-    .status-ok {
-      color: var(--forest);
-      font-weight: 600;
-    }
-
-    .status-error {
-      color: var(--danger);
-      font-weight: 600;
-    }
+    .status-ok { color: var(--forest); font-weight: 600; }
+    .status-error { color: var(--danger); font-weight: 600; }
 
     .error {
       border: 1px solid #f2c0c0;
@@ -310,19 +264,56 @@
       font-size: 0.9rem;
     }
 
-    .muted {
-      color: var(--muted);
-      font-size: 0.84rem;
+    .info {
+      border: 1px solid #bfdcf2;
+      background: var(--info-bg);
+      color: var(--info);
+      border-radius: 10px;
+      padding: 0.8rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .muted { color: var(--muted); font-size: 0.84rem; }
+
+    .keys-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .keys-grid input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, #edf7f1 25%, #f7fcf8 50%, #edf7f1 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      color: transparent !important;
+      border-radius: 6px;
+      user-select: none;
+    }
+
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to { background-position: -200% 0; }
+    }
+
+    @media (max-width: 980px) {
+      .keys-grid { grid-template-columns: 1fr 1fr; }
+      .keys-grid > div:last-child { grid-column: 1 / -1; }
     }
 
     @media (max-width: 900px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      .nav-links {
-        display: none;
-      }
+      .grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .keys-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -338,12 +329,12 @@
   <main class="container">
     <section class="hero">
       <h1>LLM Usage Console</h1>
-      <p>Track requests, token consumption, estimated cost, and provider performance across OpenAI, Anthropic, and Gemini proxy traffic.</p>
+      <p>Track request volume, token usage, estimated cost, and provider/model performance. Add API keys below to start sending requests through <code>/api/user/infer</code>.</p>
     </section>
 
-    <section class="toolbar">
+    <section class="toolbar" aria-label="Console controls">
       <div>
-        <label for="rangeSelect">Time Range</label>
+        <label for="rangeSelect">Time range</label>
         <select id="rangeSelect">
           <option value="24h">Last 24 hours</option>
           <option value="7d">Last 7 days</option>
@@ -351,34 +342,35 @@
           <option value="90d">Last 90 days</option>
         </select>
       </div>
-      <div style="display:flex; gap:0.5rem; align-items:center;">
-        <span class="muted" id="lastUpdated">Not loaded</span>
+      <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap: wrap;">
+        <span class="muted" id="lastUpdated">Loading…</span>
         <button id="refreshBtn" type="button">Refresh</button>
         <button id="logoutBtn" type="button">Logout</button>
       </div>
     </section>
 
-    <section class="panel">
-      <h2>Your API Keys</h2>
-      <p class="panel-subtitle">Saved per account. Used by /api/user/infer.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;">
-        <div><label class="muted">OpenAI</label><input id="keyOpenAI" type="password" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="sk-..."/></div>
-        <div><label class="muted">Anthropic</label><input id="keyAnthropic" type="password" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="sk-ant-..."/></div>
-        <div><label class="muted">Gemini</label><input id="keyGemini" type="password" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="AIza..."/></div>
+    <section class="panel" aria-labelledby="api-keys-title">
+      <h2 id="api-keys-title">Your API Keys</h2>
+      <p class="panel-subtitle">Keys are stored per account and masked after save.</p>
+      <div class="keys-grid">
+        <div><label class="muted" for="keyOpenAI">OpenAI</label><input id="keyOpenAI" type="password" autocomplete="off" placeholder="sk-..."/></div>
+        <div><label class="muted" for="keyAnthropic">Anthropic</label><input id="keyAnthropic" type="password" autocomplete="off" placeholder="sk-ant-..."/></div>
+        <div><label class="muted" for="keyGemini">Gemini</label><input id="keyGemini" type="password" autocomplete="off" placeholder="AIza..."/></div>
         <div><button id="saveKeysBtn" type="button">Save keys</button></div>
       </div>
-      <p id="keysState" class="muted" style="margin-top:8px">No keys loaded</p>
+      <p id="keysState" class="muted" style="margin-top:8px" role="status" aria-live="polite">Loading saved key status…</p>
     </section>
 
-    <section id="errorBox" class="error" style="display:none;"></section>
+    <section id="onboardingBox" class="info" style="display:none;"></section>
+    <section id="errorBox" class="error" style="display:none;" role="alert"></section>
 
     <section class="cards" id="kpiCards">
-      <article class="card"><p class="label">Requests</p><p class="value" id="kpiRequests">-</p></article>
-      <article class="card"><p class="label">Total Tokens</p><p class="value" id="kpiTokens">-</p></article>
-      <article class="card"><p class="label">Input Tokens</p><p class="value" id="kpiInput">-</p></article>
-      <article class="card"><p class="label">Output Tokens</p><p class="value" id="kpiOutput">-</p></article>
-      <article class="card"><p class="label">Estimated Cost (USD)</p><p class="value" id="kpiCost">-</p></article>
-      <article class="card"><p class="label">RPM / TPM (5m)</p><p class="value" id="kpiPerf">-</p></article>
+      <article class="card"><p class="label">Requests</p><p class="value skeleton" id="kpiRequests">0</p></article>
+      <article class="card"><p class="label">Total Tokens</p><p class="value skeleton" id="kpiTokens">0</p></article>
+      <article class="card"><p class="label">Input Tokens</p><p class="value skeleton" id="kpiInput">0</p></article>
+      <article class="card"><p class="label">Output Tokens</p><p class="value skeleton" id="kpiOutput">0</p></article>
+      <article class="card"><p class="label">Estimated Cost (USD)</p><p class="value skeleton" id="kpiCost">$0.00</p></article>
+      <article class="card"><p class="label">RPM / TPM (5m)</p><p class="value skeleton" id="kpiPerf">0 / 0</p></article>
     </section>
 
     <section class="grid">
@@ -396,6 +388,7 @@
 
     <section class="table-wrap">
       <table>
+        <caption class="muted" style="text-align:left;padding:0.75rem;">Latest request events (UTC)</caption>
         <thead>
           <tr>
             <th>Time (UTC)</th>
@@ -418,25 +411,17 @@
   <script>
     const number = new Intl.NumberFormat('en-US');
     const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+    let refreshTimer = null;
 
-    function authHeaders() {
-      return {};
-    }
+    function authHeaders() { return {}; }
 
     function getRangeBounds(rangeValue) {
       const to = new Date();
       const from = new Date(to);
-
-      if (rangeValue === '7d') {
-        from.setDate(from.getDate() - 7);
-      } else if (rangeValue === '30d') {
-        from.setDate(from.getDate() - 30);
-      } else if (rangeValue === '90d') {
-        from.setDate(from.getDate() - 90);
-      } else {
-        from.setHours(from.getHours() - 24);
-      }
-
+      if (rangeValue === '7d') from.setDate(from.getDate() - 7);
+      else if (rangeValue === '30d') from.setDate(from.getDate() - 30);
+      else if (rangeValue === '90d') from.setDate(from.getDate() - 90);
+      else from.setHours(from.getHours() - 24);
       return { from, to };
     }
 
@@ -447,24 +432,38 @@
         box.textContent = '';
         return;
       }
+      box.style.display = 'block';
+      box.textContent = message;
+    }
 
+    function setOnboarding(message) {
+      const box = document.getElementById('onboardingBox');
+      if (!message) {
+        box.style.display = 'none';
+        box.textContent = '';
+        return;
+      }
       box.style.display = 'block';
       box.textContent = message;
     }
 
     async function fetchJson(url) {
-      const response = await fetch(url, {
-        headers: authHeaders(),
-        credentials: 'include',
-      });
-
+      const response = await fetch(url, { headers: authHeaders(), credentials: 'include' });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         const message = payload?.error?.message || `Request failed (${response.status})`;
         throw new Error(message);
       }
-
       return payload;
+    }
+
+    function toggleSkeleton(enabled) {
+      const ids = ['kpiRequests', 'kpiTokens', 'kpiInput', 'kpiOutput', 'kpiCost', 'kpiPerf'];
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (enabled) el.classList.add('skeleton');
+        else el.classList.remove('skeleton');
+      });
     }
 
     function renderKpis(summary, perf) {
@@ -480,14 +479,11 @@
       const host = document.getElementById('trendBars');
       host.innerHTML = '';
       const points = trend.points || [];
-
       if (points.length === 0) {
-        host.innerHTML = '<p class="muted">No data in selected range.</p>';
+        host.innerHTML = '<p class="muted">No usage data yet for this range.</p>';
         return;
       }
-
       const maxTokens = Math.max(...points.map((point) => point.total_tokens || 0), 1);
-
       points.forEach((point) => {
         const wrap = document.createElement('div');
         wrap.className = 'bar-wrap';
@@ -510,15 +506,12 @@
     function renderModelDistribution(data) {
       const host = document.getElementById('modelDistribution');
       host.innerHTML = '';
-
       const rows = (data.rows || []).slice(0, 10);
       if (rows.length === 0) {
-        host.innerHTML = '<p class="muted">No model usage yet.</p>';
+        host.innerHTML = '<p class="muted">No model usage yet. Send your first request to populate this chart.</p>';
         return;
       }
-
       const maxTokens = Math.max(...rows.map((row) => row.total_tokens || 0), 1);
-
       rows.forEach((row) => {
         const entry = document.createElement('div');
         entry.className = 'model-row';
@@ -548,15 +541,13 @@
     function renderRequests(data) {
       const tbody = document.getElementById('requestRows');
       tbody.innerHTML = '';
-
       const rows = data.rows || [];
       if (rows.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="10" class="muted">No requests in selected range.</td>';
+        tr.innerHTML = '<td colspan="10" class="muted">No requests yet. Add your provider key and call /api/user/infer to start logging usage.</td>';
         tbody.appendChild(tr);
         return;
       }
-
       rows.forEach((row) => {
         const tr = document.createElement('tr');
         const statusClass = row.status_code >= 200 && row.status_code < 400 ? 'status-ok' : 'status-error';
@@ -576,8 +567,25 @@
       });
     }
 
+    function updateOnboarding(summary, hasAnyKey) {
+      const requests = summary?.request_count || 0;
+      if (requests > 0) {
+        setOnboarding('');
+        return;
+      }
+      if (!hasAnyKey) {
+        setOnboarding('Quick start: add at least one provider API key, save it, then send a request to /api/user/infer. This dashboard will fill in automatically.');
+        return;
+      }
+      setOnboarding('Your keys are saved. Next step: send your first request to /api/user/infer to see usage charts and request history.');
+    }
+
     async function loadDashboard() {
       setError('');
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = 'Refreshing…';
+      toggleSkeleton(true);
 
       const rangeValue = document.getElementById('rangeSelect').value;
       const bounds = getRangeBounds(rangeValue);
@@ -586,12 +594,13 @@
       const bucket = rangeValue === '24h' ? 'hour' : 'day';
 
       try {
-        const [summary, trend, byModel, perf, requests] = await Promise.all([
+        const [summary, trend, byModel, perf, requests, keys] = await Promise.all([
           fetchJson(`/api/user/usage/summary?from=${from}&to=${to}`),
           fetchJson(`/api/user/usage/trend?from=${from}&to=${to}&bucket=${bucket}`),
           fetchJson(`/api/user/usage/by-model?from=${from}&to=${to}`),
           fetchJson('/api/user/usage/perf?window=5m'),
           fetchJson(`/api/user/usage/requests?from=${from}&to=${to}&limit=25`),
+          fetchJson('/api/user/api-keys').catch(() => ({ keys: {} })),
         ]);
 
         renderKpis(summary, perf);
@@ -599,22 +608,35 @@
         renderModelDistribution(byModel);
         renderRequests(requests);
 
+        const keyValues = Object.values(keys.keys || {});
+        const hasAnyKey = keyValues.some((v) => v && v !== 'not set');
+        updateOnboarding(summary, hasAnyKey);
+
         document.getElementById('lastUpdated').textContent = `Updated ${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`;
       } catch (error) {
         setError(error.message);
+      } finally {
+        toggleSkeleton(false);
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh';
       }
     }
 
     async function loadApiKeys() {
       try {
         const data = await fetchJson('/api/user/api-keys');
-        document.getElementById('keysState').textContent = `Saved: ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ')}`;
+        document.getElementById('keysState').textContent = `Saved: ${Object.entries(data.keys || {}).map(([k, v]) => `${k}=${v || 'not set'}`).join(' | ') || 'none'}`;
       } catch (error) {
         document.getElementById('keysState').textContent = error.message;
       }
     }
 
     async function saveApiKeys() {
+      const btn = document.getElementById('saveKeysBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      setError('');
+
       const body = {
         openai: document.getElementById('keyOpenAI').value,
         anthropic: document.getElementById('keyAnthropic').value,
@@ -629,17 +651,28 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(data?.error?.message || 'Failed to save keys');
+        btn.disabled = false;
+        btn.textContent = 'Save keys';
         return;
       }
+
       document.getElementById('keyOpenAI').value = '';
       document.getElementById('keyAnthropic').value = '';
       document.getElementById('keyGemini').value = '';
-      document.getElementById('keysState').textContent = `Saved: ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ')}`;
+      document.getElementById('keysState').textContent = `Saved: ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ') || 'none'}`;
+      btn.disabled = false;
+      btn.textContent = 'Save keys';
+      loadDashboard();
     }
 
     async function logout() {
       await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
       location.href = '/auth';
+    }
+
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(loadDashboard, 30000);
     }
 
     document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
@@ -649,7 +682,7 @@
 
     loadApiKeys();
     loadDashboard();
-    setInterval(loadDashboard, 30000);
+    startAutoRefresh();
   </script>
 </body>
 </html>

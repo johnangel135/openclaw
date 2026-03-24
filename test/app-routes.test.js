@@ -71,7 +71,7 @@ test('session cookie includes secure attributes in production', async () => {
     },
   };
 
-  userAuth.setSessionCookie(mockResponse, 'token-value');
+  userAuth.setSessionCookie({ secure: true }, mockResponse, 'token-value');
 
   const cookie = headers['Set-Cookie'];
   assert.match(cookie, /Path=\//);
@@ -107,5 +107,35 @@ test('blocks cross-site logout and user mutating requests without same-origin he
 
   assert.equal(userPostAllowed.status, 503);
   assert.equal(userPostAllowed.body.error.code, 'config_missing_database_url');
+});
+
+test('auth page is served with accessibility and onboarding content', async () => {
+  const { app } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+
+  const response = await request(app)
+    .get('/auth')
+    .set('accept', 'text/html');
+
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Skip to account forms/);
+  assert.match(response.text, /<form class="box" id="signupForm">/);
+  assert.match(response.text, /role="status" aria-live="polite"/);
+});
+
+test('console route redirects when logged out and serves dashboard when logged in', async () => {
+  const { app, userAuth } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+
+  const loggedOut = await request(app).get('/console');
+  assert.equal(loggedOut.status, 302);
+  assert.equal(loggedOut.headers.location, '/auth');
+
+  const token = userAuth.createSession({ id: 'u2', email: 'u2@example.com' });
+  const loggedIn = await request(app)
+    .get('/console')
+    .set('Cookie', `openclaw_session=${token}`);
+
+  assert.equal(loggedIn.status, 200);
+  assert.match(loggedIn.text, /Your API Keys/);
+  assert.match(loggedIn.text, /Quick start: add at least one provider API key/);
 });
 
