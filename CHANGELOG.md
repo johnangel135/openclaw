@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.26 - 2026-03-24
+
+- Update Enterprise plan to 9/month unlimited access (24c47fa)
+
 ## v1.0.25 - 2026-03-24
 
 - Fix subscription card ghost button contrast on light backgrounds (f64bf45)
