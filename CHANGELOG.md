@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.18 - 2026-03-24
+
+- Implement Stripe subscription persistence, entitlements, and billing portal (1dfae8f)
+- chore: include pending payment route updates in app wiring (ba6b905)
+- feat: add optional redis-backed sessions and throttling with safe fallback (6c9a9f0)
+
 ## v1.0.17 - 2026-03-24
 
 - Add DB CA TLS support and live Stripe checkout mode (d452006)
