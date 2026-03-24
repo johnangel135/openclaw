@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.15 - 2026-03-24
+
+- Honor forwarded host/proto in CSRF same-origin checks (b2e9861)
+
 ## v1.0.14 - 2026-03-24
 
 - Add secure environment template documentation (e2cb3e1)
