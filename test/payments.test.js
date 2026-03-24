@@ -20,6 +20,7 @@ function loadAppForPayments(env = {}) {
   setEnv('STRIPE_WEBHOOK_SECRET', env.stripeWebhookSecret);
   setEnv('STRIPE_PRICE_STARTER', env.stripePriceStarter);
   setEnv('STRIPE_PRICE_PRO', env.stripePricePro);
+  setEnv('STRIPE_CHECKOUT_MODE', env.stripeCheckoutMode || 'stub');
 
   delete require.cache[require.resolve('../src/config')];
   delete require.cache[require.resolve('../src/auth')];
@@ -73,12 +74,13 @@ test('checkout session endpoint fails gracefully when payments are not configure
   assert.equal(response.body.error.code, 'payments_not_configured');
 });
 
-test('checkout session endpoint returns payment stub when configured', async () => {
+test('checkout session endpoint returns payment stub when configured in stub mode', async () => {
   const { app, userAuth } = loadAppForPayments({
     stripeSecretKey: 'sk_test_123',
     stripeWebhookSecret: 'whsec_test_123',
     stripePriceStarter: 'price_starter_123',
     stripePricePro: 'price_pro_123',
+    stripeCheckoutMode: 'stub',
   });
 
   const token = userAuth.createSession({ id: 'u-pay-2', email: 'payer2@example.com' });
@@ -94,6 +96,38 @@ test('checkout session endpoint returns payment stub when configured', async () 
   assert.equal(response.body.checkout.plan_id, 'starter');
   assert.equal(response.body.checkout.stripe_price_id, 'price_starter_123');
   assert.equal(response.body.checkout.status, 'stub_not_submitted');
+});
+
+test('checkout session endpoint creates Stripe session in live mode', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ id: 'cs_test_123', url: 'https://checkout.stripe.test/session/cs_test_123' }),
+  });
+
+  try {
+    const { app, userAuth } = loadAppForPayments({
+      stripeSecretKey: 'sk_test_123',
+      stripeWebhookSecret: 'whsec_test_123',
+      stripePriceStarter: 'price_starter_123',
+      stripePricePro: 'price_pro_123',
+      stripeCheckoutMode: 'live',
+    });
+
+    const token = userAuth.createSession({ id: 'u-pay-3', email: 'payer3@example.com' });
+    const response = await request(app)
+      .post('/api/user/payments/checkout-session')
+      .set('Cookie', `openclaw_session=${token}`)
+      .set('origin', 'http://127.0.0.1')
+      .set('host', '127.0.0.1')
+      .send({ plan_id: 'starter' });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.checkout.status, 'created');
+    assert.equal(response.body.checkout.id, 'cs_test_123');
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
 test('stripe webhook signature skeleton validates signed payload and rejects tampered payload', async () => {

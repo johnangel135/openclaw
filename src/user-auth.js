@@ -4,13 +4,13 @@ const crypto = require('crypto');
 const { Pool } = require('pg');
 const {
   DATABASE_URL,
-  PG_SSL_INSECURE_ALLOW,
   USER_KEYS_ENCRYPTION_KEY,
   SESSION_COOKIE_DOMAIN,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_SAMESITE,
   SESSION_COOKIE_SECURE,
 } = require('./config');
+const { getPgSslConfig } = require('./pg-ssl');
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const SESSION_SWEEP_INTERVAL = 1000 * 60 * 30;
@@ -78,14 +78,7 @@ function getPool() {
   }
   if (pool) return pool;
 
-  let ssl = { rejectUnauthorized: !PG_SSL_INSECURE_ALLOW };
-  try {
-    const parsed = new URL(DATABASE_URL);
-    const isLocal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
-    if (isLocal || process.env.PGSSLMODE === 'disable') ssl = false;
-  } catch {
-    if (process.env.PGSSLMODE === 'disable') ssl = false;
-  }
+  const ssl = getPgSslConfig(DATABASE_URL);
 
   pool = new Pool({ connectionString: DATABASE_URL, ssl });
   return pool;

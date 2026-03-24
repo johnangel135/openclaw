@@ -37,7 +37,7 @@ const {
 } = require('./providers');
 const { createRateLimiter, createAuthThrottle } = require('./rate-limit');
 const {
-  buildCheckoutSessionStub,
+  createStripeCheckoutSession,
   getPaymentReadiness,
   verifyStripeWebhookSignature,
 } = require('./payments');
@@ -382,15 +382,15 @@ function createApp() {
     res.json({ plans: getPricingPlans() });
   });
 
-  app.post('/api/user/payments/checkout-session', requireUserSession, requireSameOriginForMutations, (req, res) => {
-    const result = buildCheckoutSessionStub({
+  app.post('/api/user/payments/checkout-session', requireUserSession, requireSameOriginForMutations, asyncHandler(async (req, res) => {
+    const result = await createStripeCheckoutSession({
       userId: req.user.id,
       customerEmail: req.user.email,
       planId: req.body?.plan_id,
       origin: getRequestOrigin(req),
     });
     res.status(result.statusCode).json(result.payload);
-  });
+  }));
 
   app.post('/api/payments/webhook/stripe', (req, res) => {
     const verification = verifyStripeWebhookSignature(req.rawBody, req.get('stripe-signature'));

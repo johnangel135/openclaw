@@ -8,6 +8,7 @@ const {
   STRIPE_WEBHOOK_TOLERANCE_SECONDS,
   STRIPE_SUCCESS_URL,
   STRIPE_CANCEL_URL,
+  STRIPE_CHECKOUT_MODE,
 } = require('./config');
 const { getPlanById } = require('./pricing-plans');
 
@@ -91,7 +92,7 @@ function verifyStripeWebhookSignature(rawBody, signatureHeader) {
   return { ok: true, eventTimestamp: timestamp };
 }
 
-function buildCheckoutSessionStub({ userId, planId, customerEmail, origin }) {
+function validateCheckoutInput({ planId }) {
   const readiness = getPaymentReadiness();
   if (!readiness.enabled) {
     return {
@@ -131,28 +132,102 @@ function buildCheckoutSessionStub({ userId, planId, customerEmail, origin }) {
     };
   }
 
+  return { plan };
+}
+
+async function createStripeCheckoutSession({ userId, planId, customerEmail, origin }) {
+  const validated = validateCheckoutInput({ planId });
+  if (validated.statusCode) return validated;
+
+  const { plan } = validated;
   const fallbackOrigin = origin || 'http://localhost:3000';
-  return {
-    statusCode: 202,
-    payload: {
-      checkout: {
-        provider: 'stripe',
-        mode: 'subscription',
-        status: 'stub_not_submitted',
-        requires_provider_integration: true,
-        user_id: userId,
-        customer_email: customerEmail || null,
-        plan_id: plan.id,
-        stripe_price_id: plan.stripe_price_id,
-        success_url: STRIPE_SUCCESS_URL || `${fallbackOrigin}/billing/success`,
-        cancel_url: STRIPE_CANCEL_URL || `${fallbackOrigin}/billing/cancel`,
+  const successUrl = STRIPE_SUCCESS_URL || `${fallbackOrigin}/billing/success`;
+  const cancelUrl = STRIPE_CANCEL_URL || `${fallbackOrigin}/billing/cancel`;
+
+  if (STRIPE_CHECKOUT_MODE === 'stub') {
+    return {
+      statusCode: 202,
+      payload: {
+        checkout: {
+          provider: 'stripe',
+          mode: 'subscription',
+          status: 'stub_not_submitted',
+          requires_provider_integration: true,
+          user_id: userId,
+          customer_email: customerEmail || null,
+          plan_id: plan.id,
+          stripe_price_id: plan.stripe_price_id,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+        },
       },
-    },
-  };
+    };
+  }
+
+  try {
+    const body = new URLSearchParams({
+      mode: 'subscription',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      'line_items[0][price]': plan.stripe_price_id,
+      'line_items[0][quantity]': '1',
+      client_reference_id: userId,
+      customer_email: customerEmail || '',
+      'metadata[user_id]': userId,
+      'metadata[plan_id]': plan.id,
+    });
+
+    const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    });
+
+    const stripeBody = await response.json();
+    if (!response.ok) {
+      return {
+        statusCode: 502,
+        payload: {
+          error: {
+            message: stripeBody?.error?.message || 'Stripe checkout session failed',
+            code: 'stripe_checkout_failed',
+          },
+        },
+      };
+    }
+
+    return {
+      statusCode: 200,
+      payload: {
+        checkout: {
+          provider: 'stripe',
+          mode: 'subscription',
+          status: 'created',
+          id: stripeBody.id,
+          url: stripeBody.url,
+          plan_id: plan.id,
+          stripe_price_id: plan.stripe_price_id,
+        },
+      },
+    };
+  } catch {
+    return {
+      statusCode: 502,
+      payload: {
+        error: {
+          message: 'Stripe checkout request failed',
+          code: 'stripe_checkout_unreachable',
+        },
+      },
+    };
+  }
 }
 
 module.exports = {
-  buildCheckoutSessionStub,
+  createStripeCheckoutSession,
   getPaymentReadiness,
   parseStripeSignatureHeader,
   verifyStripeWebhookSignature,

@@ -55,6 +55,8 @@ module.exports = {
   PROXY_RATE_LIMIT_WINDOW_MS: toBoundedInt(process.env.PROXY_RATE_LIMIT_WINDOW_MS, 60000, 1000, 3600000),
   USAGE_REQUESTS_MAX_LIMIT: toBoundedInt(process.env.USAGE_REQUESTS_MAX_LIMIT, 200, 1, 10000),
   PG_SSL_INSECURE_ALLOW: toBool(process.env.PG_SSL_INSECURE_ALLOW, false),
+  PG_CA_CERT: process.env.PG_CA_CERT || '',
+  PG_CA_CERT_BASE64: process.env.PG_CA_CERT_BASE64 || '',
   ALLOWED_LLM_PROVIDERS: toList(process.env.ALLOWED_LLM_PROVIDERS),
   ALLOWED_LLM_MODELS: toList(process.env.ALLOWED_LLM_MODELS),
   SECURITY_HEADERS_ENABLED: toBool(process.env.SECURITY_HEADERS_ENABLED, true),
@@ -68,5 +70,6 @@ module.exports = {
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
   STRIPE_SUCCESS_URL: process.env.STRIPE_SUCCESS_URL || '',
   STRIPE_CANCEL_URL: process.env.STRIPE_CANCEL_URL || '',
+  STRIPE_CHECKOUT_MODE: toOneOf(process.env.STRIPE_CHECKOUT_MODE, 'stub', ['stub', 'live']),
   STRIPE_WEBHOOK_TOLERANCE_SECONDS: toBoundedInt(process.env.STRIPE_WEBHOOK_TOLERANCE_SECONDS, 300, 30, 3600),
 };

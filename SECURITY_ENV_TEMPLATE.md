@@ -18,6 +18,9 @@ USER_KEYS_ENCRYPTION_KEY=REPLACE_WITH_64_HEX_CHARS
 
 # Keep false for strict cert validation
 PG_SSL_INSECURE_ALLOW=false
+# If your DB uses private/self-signed CA, add one of these:
+PG_CA_CERT=
+PG_CA_CERT_BASE64=
 
 # Comma-separated allowlists
 ALLOWED_LLM_PROVIDERS=openai,anthropic,gemini
@@ -30,6 +33,7 @@ STRIPE_PRICE_STARTER=
 STRIPE_PRICE_PRO=
 STRIPE_SUCCESS_URL=
 STRIPE_CANCEL_URL=
+STRIPE_CHECKOUT_MODE=stub
 STRIPE_WEBHOOK_TOLERANCE_SECONDS=300
 
 USAGE_RETENTION_DAYS=90
