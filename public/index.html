@@ -252,7 +252,7 @@
       50%       { transform: translateX(-50%) translateY(6px); }
     }
 
-    /* ── Features ────────────────────────────────────────────── */
+    /* ── Features + Demo + Plans ────────────────────────────── */
     .features {
       padding: 6rem 1.5rem;
       background: var(--sky);
@@ -281,55 +281,114 @@
     .section-desc {
       text-align: center;
       color: var(--muted);
-      max-width: 480px;
-      margin: 0 auto 4rem;
+      max-width: 680px;
+      margin: 0 auto 2.2rem;
       line-height: 1.7;
+    }
+
+    .demo-strip {
+      max-width: 1100px;
+      margin: 0 auto 2.2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .demo-shot {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--mint);
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(45,106,79,0.08);
+    }
+
+    .demo-shot img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .demo-shot figcaption {
+      padding: 0.65rem 0.8rem;
+      color: var(--muted);
+      font-size: 0.83rem;
     }
 
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
       max-width: 1100px;
-      margin: 0 auto;
+      margin: 0 auto 2.5rem;
     }
 
     .feature-card {
       background: #fff;
       border: 1px solid var(--mint);
-      border-radius: 1.25rem;
-      padding: 2rem;
-      transition: transform 0.25s, box-shadow 0.25s;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(45,106,79,0.1);
+      border-radius: 1rem;
+      padding: 1.2rem;
     }
 
     .feature-icon {
-      width: 48px;
-      height: 48px;
+      width: 42px;
+      height: 42px;
       border-radius: 0.75rem;
       background: var(--dew);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 1.25rem;
+      margin-bottom: 0.8rem;
     }
 
     .feature-card h3 {
       font-family: 'Playfair Display', serif;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       color: var(--bark);
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.4rem;
     }
 
     .feature-card p {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       color: var(--muted);
-      line-height: 1.65;
+      line-height: 1.6;
     }
+
+    .plans-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .plans-title {
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      color: var(--bark);
+      font-size: 1.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .plan-card {
+      background: #fff;
+      border: 1px solid var(--mint);
+      border-radius: 14px;
+      padding: 1.15rem;
+    }
+
+    .plan-card.pro {
+      border-color: var(--fern);
+      box-shadow: 0 10px 24px rgba(64,145,108,0.16);
+    }
+
+    .plan-name { font-weight: 700; color: var(--bark); margin-bottom: 0.35rem; }
+    .plan-price { font-size: 1.35rem; color: var(--forest); margin-bottom: 0.55rem; }
+    .plan-card ul { margin-left: 1rem; color: var(--muted); font-size: 0.86rem; line-height: 1.55; }
+    .plan-card .btn { margin-top: 0.8rem; width: 100%; justify-content: center; }
 
     /* ── CTA Banner ──────────────────────────────────────────── */
     .cta-banner {
@@ -424,6 +483,7 @@
     <a class="nav-logo" href="/">Open<span>Claw</span></a>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
+      <li><a href="#subscriptions">Subscriptions</a></li>
       <li><a href="/health">Health</a></li>
       <li><a href="/console">Console</a></li>
       <li><a href="https://github.com/johnangel135/openclaw">GitHub</a></li>
@@ -469,67 +529,103 @@
 
   <!-- Features -->
   <section class="features" id="features">
-    <p class="section-label">Why OpenClaw</p>
-    <h2 class="section-title">Rooted in simplicity</h2>
-    <p class="section-desc">Every feature is grown from a single seed — making your digital life effortless.</p>
+    <p class="section-label">Product tour</p>
+    <h2 class="section-title">See the platform in action</h2>
+    <p class="section-desc">OpenClaw now includes account-based auth, usage analytics, secure key vaulting, and payment-ready subscriptions. Here’s a visual + workflow overview.</p>
+
+    <div class="demo-strip">
+      <figure class="demo-shot">
+        <img src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1200&q=80" alt="Dashboard analytics demo" loading="lazy" />
+        <figcaption>Live usage dashboard with trends, model split, and request history.</figcaption>
+      </figure>
+      <figure class="demo-shot">
+        <img src="https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&w=1200&q=80" alt="Developer workflow demo" loading="lazy" />
+        <figcaption>Developer-friendly API workflows with secure auth and provider routing.</figcaption>
+      </figure>
+      <figure class="demo-shot">
+        <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200&q=80" alt="Security and operations demo" loading="lazy" />
+        <figcaption>Security controls: CSRF protection, rate limiting, encrypted key storage.</figcaption>
+      </figure>
+      <figure class="demo-shot">
+        <img src="https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&w=1200&q=80" alt="Subscription and payment demo" loading="lazy" />
+        <figcaption>Subscription-ready billing flow with Stripe checkout + portal endpoints.</figcaption>
+      </figure>
+    </div>
 
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
-        <h3>Always On</h3>
-        <p>Lightweight Express server runs continuously, ready to respond the moment you need it.</p>
+        <h3>Fast onboarding</h3>
+        <p>Dedicated login/signup flows, guided setup, and immediate access to your private console.</p>
       </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </div>
-        <h3>Secure by Default</h3>
-        <p>Runs as a non-root user inside Docker. No unnecessary permissions, no unnecessary exposure.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-        </div>
-        <h3>CI/CD Ready</h3>
-        <p>GitHub Actions workflows auto-build, lint, and ship a Docker image to GHCR on every push to main.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12C12 7 7 4 3 6c0 5 4 8 9 6z"/><path d="M12 12c0-5 5-8 9-6 0 5-4 8-9 6z"/></svg>
-        </div>
-        <h3>Naturally Minimal</h3>
-        <p>Only one runtime dependency (Express). Tiny Docker image. Fast startup, low overhead.</p>
-      </div>
-
       <div class="feature-card">
         <div class="feature-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         </div>
-        <h3>Health Endpoint</h3>
-        <p>Built-in <code>/health</code> JSON endpoint — ideal for load balancers, uptime monitors, and orchestrators.</p>
+        <h3>Usage intelligence</h3>
+        <p>Track cost, latency, token usage, and model performance from one clean dashboard.</p>
       </div>
-
       <div class="feature-card">
         <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
-        <h3>Fully Responsive</h3>
-        <p>Looks beautiful on every screen — from a 4K monitor to a phone held with one hand.</p>
+        <h3>Security-first</h3>
+        <p>Header hardening, CSRF checks, auth throttling, and encrypted API key storage by default.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <h3>Production workflows</h3>
+        <p>Redis-optional session/limit scaling, health endpoints, and CI/CD deployment pipeline.</p>
+      </div>
+    </div>
+
+    <div class="plans-wrap" id="subscriptions">
+      <h3 class="plans-title">Subscription plans</h3>
+      <div class="plans-grid">
+        <article class="plan-card">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">$19/month</div>
+          <ul>
+            <li>Up to 50k monthly tracked proxy tokens</li>
+            <li>Personal analytics dashboard</li>
+            <li>Core support and updates</li>
+          </ul>
+          <a class="btn btn-ghost" href="/auth/signup">Start Starter</a>
+        </article>
+        <article class="plan-card pro">
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">$79/month</div>
+          <ul>
+            <li>Up to 500k monthly tracked proxy tokens</li>
+            <li>Priority support</li>
+            <li>Expanded analytics windows</li>
+          </ul>
+          <a class="btn btn-primary" href="/auth/signup">Upgrade to Pro</a>
+        </article>
+        <article class="plan-card">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price">Custom</div>
+          <ul>
+            <li>Custom limits + private deployment options</li>
+            <li>Security/compliance collaboration</li>
+            <li>Dedicated onboarding + roadmap support</li>
+          </ul>
+          <a class="btn btn-ghost" href="mailto:johnangel135@gmail.com?subject=OpenClaw%20Enterprise">Talk to sales</a>
+        </article>
       </div>
     </div>
   </section>
 
   <!-- CTA -->
   <section class="cta-banner">
-    <h2>Ready to grow something?</h2>
-    <p>Clone the repo, run <code>npm start</code>, and you're alive in under 10 seconds.</p>
-    <a class="btn btn-primary" href="https://github.com/johnangel135/openclaw" target="_blank" rel="noopener">
-      Get Started on GitHub
+    <h2>Ready to launch your subscription workflow?</h2>
+    <p>Start with Starter, scale to Pro, and move to Enterprise when you need dedicated capacity.</p>
+    <a class="btn btn-primary" href="/auth/signup">
+      Create your account
     </a>
   </section>
 
