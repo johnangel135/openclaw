@@ -407,7 +407,32 @@ async function createApp() {
     res.status(result.statusCode).json(result.payload);
   }));
 
-  app.post('/api/payments/webhook/stripe', (req, res) => {
+  app.post('/api/user/payments/billing-portal', requireUserSession, requireSameOriginForMutations, asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const result = await createStripeBillingPortalSession({
+      userId: req.user.id,
+      origin: getRequestOrigin(req),
+    });
+    res.status(result.statusCode).json(result.payload);
+  }));
+
+  app.get('/api/user/subscription', requireUserSession, asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const entitlement = await getUserEntitlement(req.user.id);
+    res.json({ entitlement });
+  }));
+
+  app.post('/api/payments/webhook/stripe', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
     const verification = verifyStripeWebhookSignature(req.rawBody, req.get('stripe-signature'));
     if (!verification.ok) {
       res.status(400).json({
@@ -419,12 +444,9 @@ async function createApp() {
       return;
     }
 
-    // Skeleton handler only: intentionally acknowledges without mutating state.
-    res.json({
-      received: true,
-      status: 'stub_ignored',
-    });
-  });
+    const result = await processStripeWebhookEvent(req.body || {});
+    res.status(result.statusCode).json(result.payload);
+  }));
 
   const proxyRateLimiter = createRateLimiter({
     maxRequests: PROXY_RATE_LIMIT_MAX_REQUESTS,
