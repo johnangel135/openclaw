@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.27 - 2026-03-24
+
+- Apply accessibility pass: contrast, focus states, skip links, reduced motion (7d45967)
+
 ## v1.0.26 - 2026-03-24
 
 - Update Enterprise plan to 9/month unlimited access (24c47fa)
