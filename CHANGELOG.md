@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.25 - 2026-03-24
+
+- Fix subscription card ghost button contrast on light backgrounds (f64bf45)
+
 ## v1.0.24 - 2026-03-24
 
 - Refocus homepage features on console token/cost analytics (96cebb2)
