@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.24 - 2026-03-24
+
+- Refocus homepage features on console token/cost analytics (96cebb2)
+
 ## v1.0.23 - 2026-03-24
 
 - Add animated demos and console screenshot section to homepage (4dadcc1)
