@@ -22,7 +22,8 @@
       --bark:     #1b4332;
       --sky:      #f0fdf4;
       --text:     #1a2e22;
-      --muted:    #4a7c59;
+      --muted:    #2f5f46;
+      --focus:    #0f766e;
     }
 
     html { scroll-behavior: smooth; }
@@ -33,7 +34,22 @@
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
+      line-height: 1.55;
     }
+
+    .skip-link {
+      position: absolute;
+      left: 10px;
+      top: -80px;
+      background: #fff;
+      color: var(--bark);
+      border: 2px solid var(--focus);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      z-index: 999;
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 10px; }
 
     /* ── Floating leaf decorations ───────────────────────────── */
     .leaf {
@@ -200,11 +216,16 @@
       padding: 0.85rem 2rem;
       border-radius: 999px;
       font-size: 0.95rem;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       text-decoration: none;
       transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
       border: none;
+    }
+
+    a:focus-visible, button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
     }
 
     .btn-primary {
@@ -463,6 +484,11 @@
     footer a:hover { text-decoration: underline; }
 
     /* ── Responsive ──────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+      html { scroll-behavior: auto; }
+    }
+
     @media (max-width: 880px) {
       .console-proof { grid-template-columns: 1fr; }
     }
@@ -475,6 +501,7 @@
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#features">Skip to main content</a>
 
   <!-- Floating leaf SVGs -->
   <svg class="leaf leaf-1" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">

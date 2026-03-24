@@ -14,7 +14,8 @@
       --mint: #b7e4c7;
       --bark: #1b4332;
       --text: #1a2e22;
-      --muted: #4a7c59;
+      --muted: #2f5f46;
+      --focus: #0f766e;
       --danger: #cf4040;
       --card-bg: #ffffff;
       --line: #d8efe1;
@@ -129,6 +130,11 @@
     }
 
     button:disabled { opacity: .6; cursor: not-allowed; }
+
+    a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
 
     .cards {
       display: grid;
@@ -303,6 +309,10 @@
     @keyframes shimmer {
       from { background-position: 200% 0; }
       to { background-position: -200% 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
     }
 
     @media (max-width: 980px) {

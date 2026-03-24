@@ -10,8 +10,8 @@
   <style>
     :root {
       --forest:#2d6a4f; --fern:#52b788; --mint:#b7e4c7; --dew:#d8f3dc;
-      --bark:#1b4332; --sky:#f0fdf4; --text:#1a2e22; --muted:#4a7c59;
-      --danger:#a32020;
+      --bark:#1b4332; --sky:#f0fdf4; --text:#1a2e22; --muted:#2f5f46;
+      --danger:#a32020; --focus:#0f766e;
     }
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Inter',sans-serif;background:var(--sky);color:var(--text);min-height:100vh}
@@ -85,7 +85,11 @@
 
     button{
       width:100%; padding:.7rem .9rem; border:none; border-radius:999px;
-      background:var(--forest); color:#fff; font-weight:600; cursor:pointer; margin-top:.75rem;
+      background:var(--forest); color:#fff; font-weight:700; cursor:pointer; margin-top:.75rem;
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
     }
     button:hover{background:#24533e}
     button:disabled{opacity:.55;cursor:not-allowed}
@@ -93,6 +97,10 @@
     #status{font-size:.92rem;padding:.3rem .2rem;min-height:1.5rem}
     .status-ok{color:#1f7a4e}
     .status-error{color:var(--danger)}
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
 
     @media (max-width: 860px) {
       .panel{grid-template-columns:1fr}
