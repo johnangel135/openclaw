@@ -142,6 +142,18 @@
       gap: 0.8rem;
     }
 
+    .billing-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.7rem;
+    }
+    .billing-actions .secondary {
+      background: #fff;
+      color: var(--bark);
+      border: 1px solid var(--mint);
+    }
+
     .card {
       border: 1px solid var(--line);
       border-radius: 14px;
@@ -371,6 +383,18 @@
       <p id="keysState" class="muted" style="margin-top:8px" role="status" aria-live="polite">Loading saved key status…</p>
     </section>
 
+    <section class="panel" aria-labelledby="billing-title">
+      <h2 id="billing-title">Billing & Subscription</h2>
+      <p class="panel-subtitle">Manage your plan and checkout flow from the console.</p>
+      <p id="subscriptionState" class="muted" role="status" aria-live="polite">Loading subscription status…</p>
+      <div class="billing-actions">
+        <button id="upgradeStarterBtn" type="button">Upgrade to Starter</button>
+        <button id="upgradeProBtn" type="button">Upgrade to Pro</button>
+        <button id="upgradeEnterpriseBtn" type="button">Upgrade to Enterprise</button>
+        <button id="manageBillingBtn" class="secondary" type="button">Manage billing</button>
+      </div>
+    </section>
+
     <section id="onboardingBox" class="info" style="display:none;"></section>
     <section id="errorBox" class="error" style="display:none;" role="alert"></section>
 
@@ -455,6 +479,11 @@
       }
       box.style.display = 'block';
       box.textContent = message;
+    }
+
+    function setSubscriptionState(message) {
+      const el = document.getElementById('subscriptionState');
+      el.textContent = message;
     }
 
     async function fetchJson(url) {
@@ -641,6 +670,58 @@
       }
     }
 
+    async function loadSubscription() {
+      try {
+        const data = await fetchJson('/api/user/subscription');
+        const ent = data.entitlement || {};
+        const plan = ent.plan_id || 'none';
+        const active = ent.active ? 'active' : 'inactive';
+        setSubscriptionState(`Current plan: ${plan} (${active}).`);
+      } catch (error) {
+        setSubscriptionState(`Subscription unavailable: ${error.message}`);
+      }
+    }
+
+    async function startCheckout(planId) {
+      setError('');
+      const response = await fetch('/api/user/payments/checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ plan_id: planId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data?.error?.message || 'Failed to start checkout');
+        return;
+      }
+      const url = data?.checkout?.url;
+      if (url) {
+        location.href = url;
+        return;
+      }
+      setSubscriptionState(`Checkout prepared for ${planId}. Configure Stripe live mode to continue.`);
+    }
+
+    async function openBillingPortal() {
+      setError('');
+      const response = await fetch('/api/user/payments/billing-portal', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data?.error?.message || 'Failed to open billing portal');
+        return;
+      }
+      const url = data?.portal?.url;
+      if (url) {
+        location.href = url;
+        return;
+      }
+      setSubscriptionState('Billing portal is in stub mode. Enable Stripe live config to continue.');
+    }
+
     async function saveApiKeys() {
       const btn = document.getElementById('saveKeysBtn');
       btn.disabled = true;
@@ -689,8 +770,13 @@
     document.getElementById('rangeSelect').addEventListener('change', loadDashboard);
     document.getElementById('saveKeysBtn').addEventListener('click', saveApiKeys);
     document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('upgradeStarterBtn').addEventListener('click', () => startCheckout('starter'));
+    document.getElementById('upgradeProBtn').addEventListener('click', () => startCheckout('pro'));
+    document.getElementById('upgradeEnterpriseBtn').addEventListener('click', () => startCheckout('enterprise'));
+    document.getElementById('manageBillingBtn').addEventListener('click', openBillingPortal);
 
     loadApiKeys();
+    loadSubscription();
     loadDashboard();
     startAutoRefresh();
   </script>

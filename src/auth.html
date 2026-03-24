@@ -142,9 +142,11 @@
             <h2>Login</h2>
             <div class="muted">Already have an account? Welcome back.</div>
             <label for="liEmail">Email</label>
-            <input id="liEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
+            <input id="liEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required aria-describedby="liEmailErr" />
+            <div id="liEmailErr" class="muted" style="min-height:1rem;"></div>
             <label for="liPass">Password</label>
-            <input id="liPass" name="password" type="password" autocomplete="current-password" placeholder="Your password" required />
+            <input id="liPass" name="password" type="password" autocomplete="current-password" placeholder="Your password" required aria-describedby="liPassErr" />
+            <div id="liPassErr" class="muted" style="min-height:1rem;"></div>
             <button id="loginBtn" type="submit">Login</button>
           </form>
         </div>
@@ -154,9 +156,11 @@
             <h2>Sign up</h2>
             <div class="muted">New to OpenClaw? Start here. Passwords must be at least 8 characters.</div>
             <label for="suEmail">Email</label>
-            <input id="suEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
+            <input id="suEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required aria-describedby="suEmailErr" />
+            <div id="suEmailErr" class="muted" style="min-height:1rem;"></div>
             <label for="suPass">Password</label>
-            <input id="suPass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required />
+            <input id="suPass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required aria-describedby="suPassErr" />
+            <div id="suPassErr" class="muted" style="min-height:1rem;"></div>
             <button id="signupBtn" type="submit">Create account</button>
           </form>
         </div>
@@ -185,6 +189,21 @@
       button.textContent = busy ? textBusy : textIdle;
     }
 
+    function setFieldError(inputId, errId, message = '') {
+      const input = document.getElementById(inputId);
+      const err = document.getElementById(errId);
+      input.setAttribute('aria-invalid', message ? 'true' : 'false');
+      err.textContent = message;
+      err.style.color = message ? 'var(--danger)' : 'var(--muted)';
+    }
+
+    function clearFieldErrors() {
+      setFieldError('suEmail', 'suEmailErr', '');
+      setFieldError('suPass', 'suPassErr', '');
+      setFieldError('liEmail', 'liEmailErr', '');
+      setFieldError('liPass', 'liPassErr', '');
+    }
+
     async function postJson(url, payload) {
       const res = await fetch(url, {
         method: 'POST',
@@ -198,22 +217,41 @@
       return data;
     }
 
-    function setMode(mode) {
+    function setMode(mode, { moveFocus = false } = {}) {
       const isLogin = mode !== 'signup';
       tabLogin.setAttribute('aria-selected', String(isLogin));
       tabSignup.setAttribute('aria-selected', String(!isLogin));
+      tabLogin.setAttribute('tabindex', isLogin ? '0' : '-1');
+      tabSignup.setAttribute('tabindex', isLogin ? '-1' : '0');
       loginPanel.hidden = !isLogin;
       signupPanel.hidden = isLogin;
       history.replaceState(null, '', isLogin ? '/auth?mode=login' : '/auth?mode=signup');
       setStatus('');
+      clearFieldErrors();
+      if (moveFocus) {
+        (isLogin ? document.getElementById('liEmail') : document.getElementById('suEmail')).focus();
+      }
     }
 
     async function signup(event) {
       event.preventDefault();
+      clearFieldErrors();
       const email = document.getElementById('suEmail').value.trim();
       const password = document.getElementById('suPass').value;
-      if (!email || !password) {
-        setStatus('Please enter email and password.', 'error');
+      let invalid = false;
+      if (!email) {
+        setFieldError('suEmail', 'suEmailErr', 'Email is required.');
+        invalid = true;
+      }
+      if (!password) {
+        setFieldError('suPass', 'suPassErr', 'Password is required.');
+        invalid = true;
+      } else if (password.length < 8) {
+        setFieldError('suPass', 'suPassErr', 'Password must be at least 8 characters.');
+        invalid = true;
+      }
+      if (invalid) {
+        setStatus('Please fix the highlighted fields.', 'error');
         return;
       }
       setBusy(signupBtn, true, 'Creating account…', 'Create account');
@@ -231,10 +269,20 @@
 
     async function login(event) {
       event.preventDefault();
+      clearFieldErrors();
       const email = document.getElementById('liEmail').value.trim();
       const password = document.getElementById('liPass').value;
-      if (!email || !password) {
-        setStatus('Please enter email and password.', 'error');
+      let invalid = false;
+      if (!email) {
+        setFieldError('liEmail', 'liEmailErr', 'Email is required.');
+        invalid = true;
+      }
+      if (!password) {
+        setFieldError('liPass', 'liPassErr', 'Password is required.');
+        invalid = true;
+      }
+      if (invalid) {
+        setStatus('Please fix the highlighted fields.', 'error');
         return;
       }
       setBusy(loginBtn, true, 'Logging in…', 'Login');
@@ -252,8 +300,31 @@
 
     document.getElementById('signupForm').addEventListener('submit', signup);
     document.getElementById('loginForm').addEventListener('submit', login);
-    tabLogin.addEventListener('click', () => setMode('login'));
-    tabSignup.addEventListener('click', () => setMode('signup'));
+    tabLogin.addEventListener('click', () => setMode('login', { moveFocus: true }));
+    tabSignup.addEventListener('click', () => setMode('signup', { moveFocus: true }));
+
+    function handleTabKeyNav(event) {
+      const tabs = [tabLogin, tabSignup];
+      const idx = tabs.indexOf(document.activeElement);
+      if (idx === -1) return;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+        event.preventDefault();
+        const next = event.key === 'ArrowRight' ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
+        tabs[next].focus();
+        setMode(next === 0 ? 'login' : 'signup');
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        tabLogin.focus();
+        setMode('login');
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        tabSignup.focus();
+        setMode('signup');
+      }
+    }
+
+    tabLogin.addEventListener('keydown', handleTabKeyNav);
+    tabSignup.addEventListener('keydown', handleTabKeyNav);
 
     const mode = new URLSearchParams(location.search).get('mode');
     setMode(mode === 'signup' ? 'signup' : 'login');

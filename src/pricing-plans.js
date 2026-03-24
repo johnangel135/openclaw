@@ -31,6 +31,20 @@ const DEFAULT_PLANS = [
       'Expanded analytics windows',
     ],
   },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    description: 'Unlimited access for high-volume teams.',
+    unit_amount: 9900,
+    currency: DEFAULT_CURRENCY,
+    interval: 'month',
+    stripe_price_env: 'STRIPE_PRICE_ENTERPRISE',
+    features: [
+      'Unlimited access',
+      'Security/compliance collaboration',
+      'Dedicated onboarding + roadmap support',
+    ],
+  },
 ];
 
 function getPricingPlans() {
