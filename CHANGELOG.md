@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.22 - 2026-03-24
+
+- Replace stock feature photos with live product demo captures (8c9f5f5)
+
 ## v1.0.21 - 2026-03-24
 
 - Revamp homepage features with demo gallery and subscription marketing (7fbd412)
