@@ -16,6 +16,25 @@ function toBoundedInt(value, fallback, min, max) {
   return Math.min(max, Math.max(min, parsed));
 }
 
+function toBool(value, fallback = false) {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function toList(value) {
+  if (!value) return [];
+  return String(value)
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 module.exports = {
   PORT: toPositiveInt(process.env.PORT, 3000),
   DATABASE_URL: process.env.DATABASE_URL || '',
@@ -23,8 +42,12 @@ module.exports = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  USER_KEYS_ENCRYPTION_KEY: process.env.USER_KEYS_ENCRYPTION_KEY || '',
   USAGE_RETENTION_DAYS: toBoundedInt(process.env.USAGE_RETENTION_DAYS, 90, 1, 3650),
   PROXY_UPSTREAM_TIMEOUT_MS: toBoundedInt(process.env.PROXY_UPSTREAM_TIMEOUT_MS, 30000, 1000, 120000),
   PROXY_RATE_LIMIT_MAX_REQUESTS: toBoundedInt(process.env.PROXY_RATE_LIMIT_MAX_REQUESTS, 60, 1, 5000),
   PROXY_RATE_LIMIT_WINDOW_MS: toBoundedInt(process.env.PROXY_RATE_LIMIT_WINDOW_MS, 60000, 1000, 3600000),
+  PG_SSL_INSECURE_ALLOW: toBool(process.env.PG_SSL_INSECURE_ALLOW, false),
+  ALLOWED_LLM_PROVIDERS: toList(process.env.ALLOWED_LLM_PROVIDERS),
+  ALLOWED_LLM_MODELS: toList(process.env.ALLOWED_LLM_MODELS),
 };

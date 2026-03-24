@@ -1,6 +1,8 @@
 'use strict';
 
 const {
+  ALLOWED_LLM_MODELS,
+  ALLOWED_LLM_PROVIDERS,
   ANTHROPIC_API_KEY,
   GEMINI_API_KEY,
   OPENAI_API_KEY,
@@ -364,6 +366,22 @@ async function invokeInfer(inferBody, timeoutMs = PROXY_UPSTREAM_TIMEOUT_MS, api
     throw new ProxyError('`model` is required', {
       statusCode: 400,
       errorCode: 'missing_model',
+      provider,
+    });
+  }
+
+  if (ALLOWED_LLM_PROVIDERS.length > 0 && !ALLOWED_LLM_PROVIDERS.includes(provider)) {
+    throw new ProxyError(`Provider is not allowed: ${provider}`, {
+      statusCode: 403,
+      errorCode: 'provider_not_allowed',
+      provider,
+    });
+  }
+
+  if (ALLOWED_LLM_MODELS.length > 0 && !ALLOWED_LLM_MODELS.includes(String(model).toLowerCase())) {
+    throw new ProxyError(`Model is not allowed: ${model}`, {
+      statusCode: 403,
+      errorCode: 'model_not_allowed',
       provider,
     });
   }

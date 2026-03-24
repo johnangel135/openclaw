@@ -1,7 +1,7 @@
 'use strict';
 
 const { Pool } = require('pg');
-const { DATABASE_URL, USAGE_RETENTION_DAYS } = require('./config');
+const { DATABASE_URL, PG_SSL_INSECURE_ALLOW, USAGE_RETENTION_DAYS } = require('./config');
 
 let pool;
 let initialized = false;
@@ -33,7 +33,7 @@ function getPool() {
     return pool;
   }
 
-  let ssl = { rejectUnauthorized: false };
+  let ssl = { rejectUnauthorized: !PG_SSL_INSECURE_ALLOW };
   try {
     const parsed = new URL(DATABASE_URL);
     const isLocal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
