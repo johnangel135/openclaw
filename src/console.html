@@ -70,6 +70,16 @@
       font-weight: 500;
     }
 
+    .menu-btn {
+      display: none;
+      background: #fff;
+      color: var(--bark);
+      border: 1px solid var(--mint);
+      border-radius: 10px;
+      padding: 0.45rem 0.65rem;
+      font-weight: 700;
+    }
+
     .container {
       max-width: 1200px;
       margin: 0 auto;
@@ -248,6 +258,7 @@
     .progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--fern), var(--forest)); }
 
     .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--card-bg); }
+    .request-mobile { display: none; }
 
     table { width: 100%; border-collapse: collapse; min-width: 860px; }
 
@@ -334,17 +345,26 @@
 
     @media (max-width: 900px) {
       .grid { grid-template-columns: 1fr; }
-      .nav-links { display: none; }
       .keys-grid { grid-template-columns: 1fr; }
+      .menu-btn { display: inline-flex; }
+      .nav-links { display: none; position: absolute; right: 1rem; top: 3.2rem; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 0.5rem; flex-direction: column; min-width: 130px; }
+      .nav-links.open { display: flex; }
+      table thead { display: none; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      tr { border-bottom: 1px solid var(--line); padding: 0.55rem 0.35rem; }
+      td { text-align: left; border: none; padding: 0.22rem 0.5rem; }
+      td::before { content: attr(data-label) ': '; font-weight: 700; color: var(--bark); }
     }
   </style>
 </head>
 <body>
   <nav>
     <a class="nav-logo" href="/">Open<span>Claw</span></a>
-    <ul class="nav-links">
+    <button id="menuBtn" class="menu-btn" type="button" aria-expanded="false" aria-controls="mainNav">Menu</button>
+    <ul id="mainNav" class="nav-links">
       <li><a href="/">Home</a></li>
       <li><a href="/health">Health</a></li>
+      <li><a href="#billing-title">Billing</a></li>
     </ul>
   </nav>
 
@@ -591,16 +611,16 @@
         const tr = document.createElement('tr');
         const statusClass = row.status_code >= 200 && row.status_code < 400 ? 'status-ok' : 'status-error';
         tr.innerHTML = `
-          <td>${new Date(row.created_at).toISOString().replace('T', ' ').slice(0, 19)}</td>
-          <td>${row.provider}</td>
-          <td>${row.model}</td>
-          <td>${row.endpoint}</td>
-          <td class="${statusClass}">${row.status_code}${row.error_code ? ` (${row.error_code})` : ''}</td>
-          <td>${number.format(row.latency_ms || 0)} ms</td>
-          <td>${number.format(row.input_tokens || 0)}</td>
-          <td>${number.format(row.output_tokens || 0)}</td>
-          <td>${number.format(row.total_tokens || 0)}</td>
-          <td>${currency.format(row.estimated_cost_usd || 0)}</td>
+          <td data-label="Time (UTC)">${new Date(row.created_at).toISOString().replace('T', ' ').slice(0, 19)}</td>
+          <td data-label="Provider">${row.provider}</td>
+          <td data-label="Model">${row.model}</td>
+          <td data-label="Endpoint">${row.endpoint}</td>
+          <td data-label="Status" class="${statusClass}">${row.status_code}${row.error_code ? ` (${row.error_code})` : ''}</td>
+          <td data-label="Latency">${number.format(row.latency_ms || 0)} ms</td>
+          <td data-label="Input">${number.format(row.input_tokens || 0)}</td>
+          <td data-label="Output">${number.format(row.output_tokens || 0)}</td>
+          <td data-label="Total">${number.format(row.total_tokens || 0)}</td>
+          <td data-label="Cost (USD)">${currency.format(row.estimated_cost_usd || 0)}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -750,7 +770,7 @@
       document.getElementById('keyOpenAI').value = '';
       document.getElementById('keyAnthropic').value = '';
       document.getElementById('keyGemini').value = '';
-      document.getElementById('keysState').textContent = `Saved: ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ') || 'none'}`;
+      document.getElementById('keysState').textContent = `Saved securely at ${new Date().toISOString().replace('T', ' ').slice(0,19)} UTC · ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ') || 'none'}`;
       btn.disabled = false;
       btn.textContent = 'Save keys';
       loadDashboard();
@@ -765,6 +785,13 @@
       if (refreshTimer) clearInterval(refreshTimer);
       refreshTimer = setInterval(loadDashboard, 30000);
     }
+
+    const menuBtn = document.getElementById('menuBtn');
+    const mainNav = document.getElementById('mainNav');
+    menuBtn.addEventListener('click', () => {
+      const open = mainNav.classList.toggle('open');
+      menuBtn.setAttribute('aria-expanded', String(open));
+    });
 
     document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
     document.getElementById('rangeSelect').addEventListener('change', loadDashboard);
