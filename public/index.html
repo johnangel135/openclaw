@@ -558,26 +558,26 @@
 
   <!-- Features -->
   <section class="features" id="features">
-    <p class="section-label">Product tour</p>
-    <h2 class="section-title">See the platform in action</h2>
-    <p class="section-desc">OpenClaw now includes account-based auth, usage analytics, secure key vaulting, and payment-ready subscriptions. Here’s a visual + workflow overview.</p>
+    <p class="section-label">Console analytics</p>
+    <h2 class="section-title">How token and cost tracking works</h2>
+    <p class="section-desc">OpenClaw Console tracks input/output tokens per request, computes estimated USD cost from model pricing, and rolls it into trend, model, and performance views.</p>
 
     <div class="demo-strip">
       <figure class="demo-shot video">
-        <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExb3Y2N3ptamlycDd2OTVwYjA1MXR4enlyN3VmYjIxN2NidjYxYzlyeCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/l0HlvtIPzPdt2usKs/giphy.gif" alt="Animated login and onboarding demo" loading="lazy" />
-        <figcaption>Quick demo loop: sign in, reach dashboard, and start configuring provider keys.</figcaption>
-      </figure>
-      <figure class="demo-shot video">
         <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHBvY2o3bzMyeGx1MzB2Z2RjM3B6eTlkMDV0YnQ4a2w4b3FuN2Q1aSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/26ufdipQqU2lhNA4g/giphy.gif" alt="Animated dashboard workflow demo" loading="lazy" />
-        <figcaption>Dashboard workflow demo: usage analytics, events, and operations visibility.</figcaption>
+        <figcaption>Dashboard workflow demo: usage analytics, token totals, and performance visibility.</figcaption>
       </figure>
       <figure class="demo-shot">
-        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/auth?mode=signup" alt="Live signup experience demo" loading="lazy" />
-        <figcaption>Guided signup onboarding with focused UX and accessibility improvements.</figcaption>
+        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/console" alt="Console request log demo" loading="lazy" />
+        <figcaption>Per-request logging captures input/output tokens, latency, status, and estimated cost.</figcaption>
+      </figure>
+      <figure class="demo-shot">
+        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/health" alt="Operations health endpoint demo" loading="lazy" />
+        <figcaption>Health and runtime checks support reliable operations and monitoring.</figcaption>
       </figure>
       <figure class="demo-shot">
         <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/#subscriptions" alt="Subscription plans demo" loading="lazy" />
-        <figcaption>Subscription marketing and plan selection (Starter, Pro, Enterprise).</figcaption>
+        <figcaption>Subscription plans map directly to usage scale and analytics needs.</figcaption>
       </figure>
     </div>
 
@@ -597,8 +597,8 @@
         <div class="feature-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
-        <h3>Fast onboarding</h3>
-        <p>Dedicated login/signup flows, guided setup, and immediate access to your private console.</p>
+        <h3>Token accounting engine</h3>
+        <p>Every proxy call stores input/output/total tokens so totals stay auditable across all views.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">
