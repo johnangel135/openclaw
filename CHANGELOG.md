@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.23 - 2026-03-24
+
+- Add animated demos and console screenshot section to homepage (4dadcc1)
+
 ## v1.0.22 - 2026-03-24
 
 - Replace stock feature photos with live product demo captures (8c9f5f5)
