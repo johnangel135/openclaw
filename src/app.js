@@ -100,9 +100,12 @@ function parseLimit(limitRaw, fallback) {
 }
 
 function getRequestOrigin(req) {
-  const host = req.get('host');
+  const host = req.get('x-forwarded-host') || req.get('host');
   if (!host) return '';
-  return `${req.protocol}://${host}`;
+
+  const forwardedProto = (req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol;
+  return `${protocol}://${host}`;
 }
 
 function isSameOrigin(urlValue, origin) {
