@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.29 - 2026-03-24
+
+- Complete P2 UX pass: mobile nav, responsive request table, key-save feedback (3002372)
+
 ## v1.0.28 - 2026-03-24
 
 - Implement P0/P1 UX fixes: plan alignment, billing panel, CTA and auth a11y (064ff1a)
