@@ -117,17 +117,18 @@
   <main id="auth-main" class="hero">
     <div class="panel">
       <section class="intro" aria-labelledby="auth-title">
-        <h1 id="auth-title">Account Access</h1>
-        <p>Sign in to use your personal provider keys and track usage in your private console.</p>
+        <h1 id="auth-title">Get started with OpenClaw</h1>
+        <p>Create your account or sign in to access your private usage console and API-key settings.</p>
         <ul>
-          <li>Create one account per workspace.</li>
-          <li>Your session is stored in a secure cookie.</li>
-          <li>After login, add your provider keys in Console → Your API Keys.</li>
+          <li>Step 1: Sign up (or log in if you already have an account).</li>
+          <li>Step 2: Add provider keys in Console → Your API Keys.</li>
+          <li>Step 3: Send your first <code>/api/user/infer</code> request to populate analytics.</li>
         </ul>
         <div class="quick-links" aria-label="Direct auth links">
           <a href="/auth/login">Go to login</a>
           <a href="/auth/signup">Go to sign up</a>
         </div>
+        <p class="muted" style="margin-top:.9rem;">Trust note: sessions use secure cookies and API keys are masked after save.</p>
       </section>
 
       <section class="forms" aria-label="Authentication forms">
@@ -151,7 +152,7 @@
         <div id="signupPanel" class="panel-form" role="tabpanel" aria-labelledby="tabSignup" hidden>
           <form class="box" id="signupForm">
             <h2>Sign up</h2>
-            <div class="muted">New to OpenClaw? Start here.</div>
+            <div class="muted">New to OpenClaw? Start here. Passwords must be at least 8 characters.</div>
             <label for="suEmail">Email</label>
             <input id="suEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
             <label for="suPass">Password</label>

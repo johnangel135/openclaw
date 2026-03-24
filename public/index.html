@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenClaw — Where Nature Meets Intelligence</title>
+  <title>OpenClaw — Self-hosted AI gateway, usage analytics, and team-ready billing</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -251,6 +251,23 @@
       transform: translateY(-2px);
     }
 
+    .trust-strip {
+      margin-top: 1.2rem;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .trust-pill {
+      font-size: 0.78rem;
+      color: rgba(216, 243, 220, 0.92);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.26);
+      border-radius: 999px;
+      padding: 0.35rem 0.7rem;
+    }
+
     /* scroll indicator */
     .scroll-hint {
       position: absolute;
@@ -444,6 +461,13 @@
       background: #dff1e7;
     }
 
+    .plans-note {
+      margin-top: 0.8rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
     /* ── CTA Banner ──────────────────────────────────────────── */
     .cta-banner {
       background: linear-gradient(135deg, var(--bark) 0%, var(--forest) 100%);
@@ -564,11 +588,11 @@
         Now live on Node 20
       </div>
 
-      <h1>Where Nature Meets<br /><em>Intelligence</em></h1>
+      <h1>Run your own AI gateway.<br /><em>See every token.</em></h1>
 
       <p class="hero-sub">
-        OpenClaw is a thoughtful, AI-powered personal agent rooted in clarity —
-        like a forest floor after rain. Open, calm, and always ready.
+        OpenClaw helps you ship production AI with confidence: bring your own provider keys,
+        track usage and estimated cost in real time, and scale from solo projects to teams.
       </p>
 
       <div class="hero-actions">
@@ -583,6 +607,13 @@
           View on GitHub
         </a>
       </div>
+
+      <div class="trust-strip" aria-label="Trust signals">
+        <span class="trust-pill">Self-host friendly</span>
+        <span class="trust-pill">MIT licensed</span>
+        <span class="trust-pill">Secure session auth</span>
+        <span class="trust-pill">Bring your own API keys</span>
+      </div>
     </div>
 
     <div class="scroll-hint">
@@ -593,9 +624,9 @@
 
   <!-- Features -->
   <section class="features" id="features">
-    <p class="section-label">Console analytics</p>
-    <h2 class="section-title">How token and cost tracking works</h2>
-    <p class="section-desc">OpenClaw Console tracks input/output tokens per request, computes estimated USD cost from model pricing, and rolls it into trend, model, and performance views.</p>
+    <p class="section-label">What you get</p>
+    <h2 class="section-title">Onboard fast, then optimize with real usage data</h2>
+    <p class="section-desc">From first request to production monitoring, OpenClaw gives you one place for API key setup, token accounting, estimated cost tracking, and performance insights.</p>
 
     <div class="demo-strip">
       <figure class="demo-shot video">
@@ -659,7 +690,7 @@
     </div>
 
     <div class="plans-wrap" id="subscriptions">
-      <h3 class="plans-title">Subscription plans</h3>
+      <h3 class="plans-title">Subscription plans (monthly billing)</h3>
       <div class="plans-grid">
         <article class="plan-card">
           <div class="plan-name">Starter</div>
@@ -692,13 +723,14 @@
           <a class="btn btn-ghost" href="/auth/signup">Get Enterprise</a>
         </article>
       </div>
+      <p class="plans-note">Provider API usage charges are billed separately by your AI provider.</p>
     </div>
   </section>
 
   <!-- CTA -->
   <section class="cta-banner">
-    <h2>Ready to launch your subscription workflow?</h2>
-    <p>Start with Starter, scale to Pro, and move to Enterprise when you need dedicated capacity.</p>
+    <h2>Ready to launch with clearer cost and usage visibility?</h2>
+    <p>Create your account, add your provider key, and run your first tracked request in minutes.</p>
     <a class="btn btn-primary" href="/auth/signup">
       Create your account
     </a>

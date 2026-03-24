@@ -339,7 +339,7 @@
   <main class="container">
     <section class="hero">
       <h1>LLM Usage Console</h1>
-      <p>Track request volume, token usage, estimated cost, and provider/model performance. Add API keys below to start sending requests through <code>/api/user/infer</code>.</p>
+      <p>Track request volume, token usage, estimated cost, and provider/model performance. Quick start: save a provider key, send a request to <code>/api/user/infer</code>, then watch analytics update live.</p>
     </section>
 
     <section class="toolbar" aria-label="Console controls">
@@ -361,7 +361,7 @@
 
     <section class="panel" aria-labelledby="api-keys-title">
       <h2 id="api-keys-title">Your API Keys</h2>
-      <p class="panel-subtitle">Keys are stored per account and masked after save.</p>
+      <p class="panel-subtitle">Keys are stored per account, encrypted at rest, and masked after save.</p>
       <div class="keys-grid">
         <div><label class="muted" for="keyOpenAI">OpenAI</label><input id="keyOpenAI" type="password" autocomplete="off" placeholder="sk-..."/></div>
         <div><label class="muted" for="keyAnthropic">Anthropic</label><input id="keyAnthropic" type="password" autocomplete="off" placeholder="sk-ant-..."/></div>
@@ -584,10 +584,10 @@
         return;
       }
       if (!hasAnyKey) {
-        setOnboarding('Quick start: add at least one provider API key, save it, then send a request to /api/user/infer. This dashboard will fill in automatically.');
+        setOnboarding('Quick start: add at least one provider API key, click Save keys, then send a request to /api/user/infer. Your charts and request log will populate automatically.');
         return;
       }
-      setOnboarding('Your keys are saved. Next step: send your first request to /api/user/infer to see usage charts and request history.');
+      setOnboarding('Nice — your keys are saved. Next step: send your first /api/user/infer request to unlock usage charts and request history.');
     }
 
     async function loadDashboard() {
