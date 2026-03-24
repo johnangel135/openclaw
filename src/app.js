@@ -34,7 +34,7 @@ const {
   toOpenAIChatResponse,
   toOpenAIResponsesResponse,
 } = require('./providers');
-const { createRateLimiter } = require('./rate-limit');
+const { createRateLimiter, createAuthThrottle } = require('./rate-limit');
 const {
   PROXY_RATE_LIMIT_MAX_REQUESTS,
   PROXY_RATE_LIMIT_WINDOW_MS,
@@ -97,6 +97,54 @@ function parseLimit(limitRaw, fallback) {
     return fallback;
   }
   return parsed;
+}
+
+function getRequestOrigin(req) {
+  const host = req.get('host');
+  if (!host) return '';
+  return `${req.protocol}://${host}`;
+}
+
+function isSameOrigin(urlValue, origin) {
+  if (!urlValue || !origin) return false;
+  try {
+    const parsed = new URL(urlValue);
+    return parsed.origin === origin;
+  } catch {
+    return false;
+  }
+}
+
+function requireSameOriginForMutations(req, res, next) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    next();
+    return;
+  }
+
+  const expectedOrigin = getRequestOrigin(req);
+  const requestOrigin = req.get('origin');
+  const referer = req.get('referer');
+
+  const valid = isSameOrigin(requestOrigin, expectedOrigin)
+    || (!requestOrigin && isSameOrigin(referer, expectedOrigin));
+
+  if (!valid) {
+    res.status(403).json({
+      error: {
+        message: 'Cross-site request blocked',
+        code: 'csrf_blocked',
+      },
+    });
+    return;
+  }
+
+  next();
+}
+
+function authThrottleKey(req) {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+  return `auth:${email || 'unknown'}:${ip}`;
 }
 
 function serializeUsage(usage) {
@@ -175,37 +223,44 @@ function createApp() {
   // Serve static files from public directory.
   app.use(express.static(PUBLIC_DIR));
 
+  const signupThrottle = createAuthThrottle({ keyFn: authThrottleKey });
+  const loginThrottle = createAuthThrottle({ keyFn: authThrottleKey });
+
   app.get('/auth', (req, res) => {
     res.set('Cache-Control', 'no-store');
     res.sendFile(AUTH_FILE);
   });
 
-  app.post('/auth/signup', asyncHandler(async (req, res) => {
+  app.post('/auth/signup', signupThrottle.preflight, asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
     try {
       const user = await createUser(email, password);
+      signupThrottle.recordSuccess(req);
       const token = createSession(user);
       setSessionCookie(res, token);
       res.status(201).json({ user });
     } catch (error) {
+      signupThrottle.recordFailure(req);
       const code = String(error.message || '').includes('exists') ? 409 : 400;
       res.status(code).json({ error: { message: error.message, code: 'invalid_signup' } });
     }
   }));
 
-  app.post('/auth/login', asyncHandler(async (req, res) => {
+  app.post('/auth/login', loginThrottle.preflight, asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
     const user = await authenticateUser(email, password);
     if (!user) {
+      loginThrottle.recordFailure(req);
       res.status(401).json({ error: { message: 'Invalid email/password', code: 'unauthorized' } });
       return;
     }
+    loginThrottle.recordSuccess(req);
     const token = createSession(user);
     setSessionCookie(res, token);
     res.json({ user });
   }));
 
-  app.post('/auth/logout', (req, res) => {
+  app.post('/auth/logout', requireSameOriginForMutations, (req, res) => {
     clearSessionCookie(req, res);
     res.json({ ok: true });
   });
@@ -261,7 +316,7 @@ function createApp() {
     res.json({ keys: maskApiKeys(keys) });
   }));
 
-  app.post('/api/user/api-keys', requireUserSession, asyncHandler(async (req, res) => {
+  app.post('/api/user/api-keys', requireUserSession, requireSameOriginForMutations, asyncHandler(async (req, res) => {
     const keys = await updateUserApiKeys(req.user.id, req.body || {});
     res.json({ keys });
   }));
@@ -289,7 +344,7 @@ function createApp() {
     res.status(result.statusCode).json(result.body);
   }));
 
-  app.post('/api/user/infer', asyncHandler(async (req, res) => {
+  app.post('/api/user/infer', requireSameOriginForMutations, asyncHandler(async (req, res) => {
     if (!requireDatabase(res)) {
       return;
     }

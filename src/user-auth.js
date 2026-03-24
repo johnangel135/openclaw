@@ -194,14 +194,19 @@ function getSessionUser(req) {
   return session.user || null;
 }
 
+function buildSessionCookie(value, maxAgeSeconds) {
+  const secureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  return `openclaw_session=${value}; Path=/; HttpOnly; SameSite=Lax${secureFlag}; Max-Age=${maxAgeSeconds}`;
+}
+
 function setSessionCookie(res, token) {
-  res.setHeader('Set-Cookie', `openclaw_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`);
+  res.setHeader('Set-Cookie', buildSessionCookie(token, Math.floor(SESSION_TTL_MS / 1000)));
 }
 
 function clearSessionCookie(req, res) {
   const token = parseCookies(req).openclaw_session;
   if (token) sessions.delete(token);
-  res.setHeader('Set-Cookie', 'openclaw_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  res.setHeader('Set-Cookie', buildSessionCookie('', 0));
 }
 
 function requireUserSession(req, res, next) {
