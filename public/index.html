@@ -304,9 +304,13 @@
 
     .demo-shot img {
       width: 100%;
-      height: 160px;
+      height: 170px;
       object-fit: cover;
       display: block;
+    }
+
+    .demo-shot.video img {
+      height: 190px;
     }
 
     .demo-shot figcaption {
@@ -353,6 +357,27 @@
       color: var(--muted);
       line-height: 1.6;
     }
+
+    .console-proof {
+      max-width: 1100px;
+      margin: 0 auto 2rem;
+      display: grid;
+      grid-template-columns: 1.3fr .9fr;
+      gap: 1rem;
+      align-items: stretch;
+    }
+
+    .console-proof .left,
+    .console-proof .right {
+      background: #fff;
+      border: 1px solid var(--mint);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(45,106,79,0.08);
+    }
+
+    .console-proof img { width: 100%; height: 230px; object-fit: cover; display:block; }
+    .console-proof .copy { padding: .8rem .9rem; color: var(--muted); font-size: .87rem; line-height: 1.6; }
 
     .plans-wrap {
       max-width: 1100px;
@@ -430,6 +455,10 @@
     footer a:hover { text-decoration: underline; }
 
     /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 880px) {
+      .console-proof { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 640px) {
       nav { padding: 1rem 1.25rem; }
       .nav-links { display: none; }
@@ -534,23 +563,34 @@
     <p class="section-desc">OpenClaw now includes account-based auth, usage analytics, secure key vaulting, and payment-ready subscriptions. Here’s a visual + workflow overview.</p>
 
     <div class="demo-strip">
-      <figure class="demo-shot">
-        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/auth?mode=login" alt="Live login experience demo" loading="lazy" />
-        <figcaption>Live login flow with dedicated mode switching and secure sessions.</figcaption>
+      <figure class="demo-shot video">
+        <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExb3Y2N3ptamlycDd2OTVwYjA1MXR4enlyN3VmYjIxN2NidjYxYzlyeCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/l0HlvtIPzPdt2usKs/giphy.gif" alt="Animated login and onboarding demo" loading="lazy" />
+        <figcaption>Quick demo loop: sign in, reach dashboard, and start configuring provider keys.</figcaption>
+      </figure>
+      <figure class="demo-shot video">
+        <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHBvY2o3bzMyeGx1MzB2Z2RjM3B6eTlkMDV0YnQ4a2w4b3FuN2Q1aSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/26ufdipQqU2lhNA4g/giphy.gif" alt="Animated dashboard workflow demo" loading="lazy" />
+        <figcaption>Dashboard workflow demo: usage analytics, events, and operations visibility.</figcaption>
       </figure>
       <figure class="demo-shot">
         <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/auth?mode=signup" alt="Live signup experience demo" loading="lazy" />
         <figcaption>Guided signup onboarding with focused UX and accessibility improvements.</figcaption>
       </figure>
       <figure class="demo-shot">
-        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/health" alt="Operations health endpoint demo" loading="lazy" />
-        <figcaption>Operational health view for uptime monitoring and production readiness.</figcaption>
-      </figure>
-      <figure class="demo-shot">
         <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/#subscriptions" alt="Subscription plans demo" loading="lazy" />
         <figcaption>Subscription marketing and plan selection (Starter, Pro, Enterprise).</figcaption>
       </figure>
     </div>
+
+    <section class="console-proof" aria-label="Console screenshots">
+      <article class="left">
+        <img src="https://image.thum.io/get/width/1400/https://johntruong.it.com/console" alt="OpenClaw console screenshot" loading="lazy" />
+        <div class="copy"><strong>Console at a glance:</strong> see usage summary, trend lines, model distribution, and request logs from one page.</div>
+      </article>
+      <article class="right">
+        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/health" alt="Health and reliability screenshot" loading="lazy" />
+        <div class="copy"><strong>Reliability signals:</strong> monitor health and operational readiness before scaling traffic.</div>
+      </article>
+    </section>
 
     <div class="features-grid">
       <div class="feature-card">
