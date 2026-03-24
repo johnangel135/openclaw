@@ -136,8 +136,21 @@ test('auth page is served with accessibility and onboarding content', async () =
 
   assert.equal(response.status, 200);
   assert.match(response.text, /Skip to account forms/);
-  assert.match(response.text, /<form class="box" id="signupForm">/);
+  assert.match(response.text, /Go to login/);
+  assert.match(response.text, /Go to sign up/);
   assert.match(response.text, /role="status" aria-live="polite"/);
+});
+
+test('dedicated auth routes redirect to focused modes', async () => {
+  const { app } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+
+  const login = await request(app).get('/auth/login');
+  assert.equal(login.status, 302);
+  assert.equal(login.headers.location, '/auth?mode=login');
+
+  const signup = await request(app).get('/auth/signup');
+  assert.equal(signup.status, 302);
+  assert.equal(signup.headers.location, '/auth?mode=signup');
 });
 
 test('console route redirects when logged out and serves dashboard when logged in', async () => {

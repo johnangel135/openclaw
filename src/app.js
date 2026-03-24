@@ -312,6 +312,14 @@ async function createApp() {
     res.sendFile(AUTH_FILE);
   });
 
+  app.get('/auth/login', (req, res) => {
+    res.redirect('/auth?mode=login');
+  });
+
+  app.get('/auth/signup', (req, res) => {
+    res.redirect('/auth?mode=signup');
+  });
+
   app.post('/auth/signup', signupThrottle.preflight, asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
     const emailHash = hashIdentifier(email);

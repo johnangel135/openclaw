@@ -62,6 +62,8 @@
     .switcher{display:flex;gap:.45rem;background:#f4fbf6;border:1px solid #d6eadf;border-radius:12px;padding:.35rem}
     .switcher button{margin:0;padding:.55rem .8rem;border-radius:10px;background:transparent;color:var(--bark);font-weight:600}
     .switcher button[aria-selected="true"]{background:var(--forest);color:#fff}
+    .quick-links{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+    .quick-links a{display:inline-block;padding:.45rem .7rem;border:1px solid #cfe7d9;border-radius:999px;color:var(--bark);text-decoration:none;font-size:.84rem;background:#fff}
     .panel-form[hidden]{display:none}
     .box{border:1px solid #d6eadf; border-radius:14px; padding:1rem; background:#fff}
     .box h2{font-family:'Playfair Display',serif;color:var(--bark);margin-bottom:.2rem;font-size:1.25rem}
@@ -114,6 +116,10 @@
           <li>Your session is stored in a secure cookie.</li>
           <li>After login, add your provider keys in Console → Your API Keys.</li>
         </ul>
+        <div class="quick-links" aria-label="Direct auth links">
+          <a href="/auth/login">Go to login</a>
+          <a href="/auth/signup">Go to sign up</a>
+        </div>
       </section>
 
       <section class="forms" aria-label="Authentication forms">
