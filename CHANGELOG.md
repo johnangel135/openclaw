@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.17 - 2026-03-24
+
+- Add DB CA TLS support and live Stripe checkout mode (d452006)
+
 ## v1.0.16 - 2026-03-24
 
 - security: clamp usage request limits and document hardening envs (36b58a5)
