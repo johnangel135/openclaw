@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const { CONSOLE_ADMIN_TOKEN } = require('./config');
 
 function extractAdminToken(req) {
@@ -33,6 +34,15 @@ function respondAuthError(req, res, statusCode, message, code) {
   });
 }
 
+function safeTokenEqual(input, expected) {
+  const a = Buffer.from(String(input || ''), 'utf8');
+  const b = Buffer.from(String(expected || ''), 'utf8');
+  if (a.length !== b.length || b.length === 0) {
+    return false;
+  }
+  return crypto.timingSafeEqual(a, b);
+}
+
 function requireAdminToken(req, res, next) {
   if (!CONSOLE_ADMIN_TOKEN) {
     respondAuthError(req, res, 503, 'CONSOLE_ADMIN_TOKEN is not configured', 'config_missing_admin_token');
@@ -40,7 +50,7 @@ function requireAdminToken(req, res, next) {
   }
 
   const token = extractAdminToken(req);
-  if (!token || token !== CONSOLE_ADMIN_TOKEN) {
+  if (!token || !safeTokenEqual(token, CONSOLE_ADMIN_TOKEN)) {
     respondAuthError(req, res, 401, 'Invalid or missing admin token', 'unauthorized');
     return;
   }

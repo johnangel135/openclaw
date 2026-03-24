@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 
-function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv }) {
+function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv, corsAllowedOrigins, securityHeadersEnabled }) {
   if (adminToken === undefined) {
     delete process.env.CONSOLE_ADMIN_TOKEN;
   } else {
@@ -21,6 +21,18 @@ function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv }) {
     delete process.env.NODE_ENV;
   } else {
     process.env.NODE_ENV = nodeEnv;
+  }
+
+  if (corsAllowedOrigins === undefined) {
+    delete process.env.CORS_ALLOWED_ORIGINS;
+  } else {
+    process.env.CORS_ALLOWED_ORIGINS = corsAllowedOrigins;
+  }
+
+  if (securityHeadersEnabled === undefined) {
+    delete process.env.SECURITY_HEADERS_ENABLED;
+  } else {
+    process.env.SECURITY_HEADERS_ENABLED = securityHeadersEnabled;
   }
 
   delete require.cache[require.resolve('../src/config')];
@@ -137,5 +149,31 @@ test('console route redirects when logged out and serves dashboard when logged i
   assert.equal(loggedIn.status, 200);
   assert.match(loggedIn.text, /Your API Keys/);
   assert.match(loggedIn.text, /Quick start: add at least one provider API key/);
+});
+
+test('security headers are applied by default', async () => {
+  const { app } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+
+  const response = await request(app).get('/health').set('accept', 'application/json');
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers['x-content-type-options'], 'nosniff');
+  assert.equal(response.headers['x-dns-prefetch-control'], 'off');
+});
+
+test('cors allowlist permits configured origin and preflight', async () => {
+  const { app } = loadAppWithEnv({
+    adminToken: 'secret-token',
+    databaseUrl: undefined,
+    corsAllowedOrigins: 'https://console.example.com',
+  });
+
+  const preflight = await request(app)
+    .options('/auth/me')
+    .set('Origin', 'https://console.example.com');
+
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers['access-control-allow-origin'], 'https://console.example.com');
+  assert.equal(preflight.headers['access-control-allow-credentials'], 'true');
 });
 

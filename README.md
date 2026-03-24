@@ -24,6 +24,7 @@ OpenClaw is a lightweight Express.js web application featuring:
 - **LLM Token & Cost Console** — protected `/console` dashboard with token/cost analytics
 - **LLM proxy endpoints** — `/v1/chat/completions`, `/v1/responses`, `/api/llm/infer`
 - **Postgres usage persistence** — stores request-level usage with 90-day default retention
+- **Payments readiness baseline** — Stripe-ready scaffolding with safe checkout/webhook stubs
 
 ## Quick Start
 
@@ -58,6 +59,26 @@ Then open:
 - `GET /console?token=<CONSOLE_ADMIN_TOKEN>`
 - `GET /api/usage/summary` (with `x-admin-token`)
 - `POST /api/llm/infer` (with `x-admin-token`)
+
+### Payments Readiness Setup
+
+Set payment env vars (test keys first):
+
+```bash
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_STARTER=price_...
+STRIPE_PRICE_PRO=price_...
+```
+
+Available payment endpoints:
+
+- `GET /api/payments/readiness`
+- `GET /api/payments/plans`
+- `POST /api/user/payments/checkout-session` (requires login + same-origin)
+- `POST /api/payments/webhook/stripe`
+
+See `PAYMENTS.md` for threat model notes and implementation details.
 
 ## Project Structure
 

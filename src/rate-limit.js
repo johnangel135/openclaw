@@ -52,6 +52,7 @@ function createAuthThrottle({
   maxFailures = 5,
   initialBackoffMs = 1000,
   maxBackoffMs = 10 * 60 * 1000,
+  onBlocked,
 } = {}) {
   const attempts = new Map();
 
@@ -84,6 +85,9 @@ function createAuthThrottle({
     if (record.lockUntil > now) {
       const retryAfterSeconds = Math.ceil((record.lockUntil - now) / 1000);
       res.set('Retry-After', String(Math.max(retryAfterSeconds, 1)));
+      if (typeof onBlocked === 'function') {
+        onBlocked(req, retryAfterSeconds);
+      }
       res.status(429).json({
         error: {
           message: 'Too many authentication attempts. Please retry later.',

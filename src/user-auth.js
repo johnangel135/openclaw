@@ -2,9 +2,18 @@
 
 const crypto = require('crypto');
 const { Pool } = require('pg');
-const { DATABASE_URL, PG_SSL_INSECURE_ALLOW, USER_KEYS_ENCRYPTION_KEY } = require('./config');
+const {
+  DATABASE_URL,
+  PG_SSL_INSECURE_ALLOW,
+  USER_KEYS_ENCRYPTION_KEY,
+  SESSION_COOKIE_DOMAIN,
+  SESSION_COOKIE_NAME,
+  SESSION_COOKIE_SAMESITE,
+  SESSION_COOKIE_SECURE,
+} = require('./config');
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const SESSION_SWEEP_INTERVAL = 1000 * 60 * 30;
 const sessions = new Map();
 let pool;
 let initialized = false;
@@ -222,9 +231,25 @@ function parseCookies(req) {
   for (const chunk of header.split(';')) {
     const [rawKey, ...rawValue] = chunk.trim().split('=');
     if (!rawKey) continue;
-    cookies[rawKey] = decodeURIComponent(rawValue.join('='));
+    try {
+      cookies[rawKey] = decodeURIComponent(rawValue.join('='));
+    } catch {
+      cookies[rawKey] = rawValue.join('=');
+    }
   }
   return cookies;
+}
+
+function resolveSecureCookie(req) {
+  if (SESSION_COOKIE_SECURE === 'true') return true;
+  if (SESSION_COOKIE_SECURE === 'false') return false;
+
+  if (process.env.NODE_ENV === 'production') {
+    const proto = String(req?.get?.('x-forwarded-proto') || '').split(',')[0].trim().toLowerCase();
+    if (proto === 'https') return true;
+    return true;
+  }
+  return false;
 }
 
 function createSession(user) {
@@ -238,7 +263,7 @@ function createSession(user) {
 
 function getSessionUser(req) {
   const cookies = parseCookies(req);
-  const token = cookies.openclaw_session || '';
+  const token = cookies[SESSION_COOKIE_NAME] || '';
   const session = sessions.get(token);
   if (!session) return null;
   if (Date.now() > session.expiresAt) {
@@ -248,20 +273,34 @@ function getSessionUser(req) {
   return session.user || null;
 }
 
-function buildSessionCookie(value, maxAgeSeconds) {
-  const secureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  return `openclaw_session=${value}; Path=/; HttpOnly; SameSite=Lax${secureFlag}; Max-Age=${maxAgeSeconds}`;
+function buildSessionCookie(req, value, maxAgeSeconds) {
+  const secureFlag = resolveSecureCookie(req) ? '; Secure' : '';
+  const domainFlag = SESSION_COOKIE_DOMAIN ? `; Domain=${SESSION_COOKIE_DOMAIN}` : '';
+  const sameSite = `; SameSite=${SESSION_COOKIE_SAMESITE.charAt(0).toUpperCase()}${SESSION_COOKIE_SAMESITE.slice(1)}`;
+  return `${SESSION_COOKIE_NAME}=${value}; Path=/; HttpOnly${sameSite}${secureFlag}${domainFlag}; Priority=High; Max-Age=${maxAgeSeconds}`;
 }
 
-function setSessionCookie(res, token) {
-  res.setHeader('Set-Cookie', buildSessionCookie(token, Math.floor(SESSION_TTL_MS / 1000)));
+function sweepExpiredSessions(now = Date.now()) {
+  for (const [token, session] of sessions.entries()) {
+    if (!session || session.expiresAt <= now) {
+      sessions.delete(token);
+    }
+  }
+}
+
+function setSessionCookie(req, res, token) {
+  res.setHeader('Set-Cookie', buildSessionCookie(req, token, Math.floor(SESSION_TTL_MS / 1000)));
 }
 
 function clearSessionCookie(req, res) {
-  const token = parseCookies(req).openclaw_session;
+  const token = parseCookies(req)[SESSION_COOKIE_NAME];
   if (token) sessions.delete(token);
-  res.setHeader('Set-Cookie', buildSessionCookie('', 0));
+  res.setHeader('Set-Cookie', buildSessionCookie(req, '', 0));
 }
+
+setInterval(() => {
+  sweepExpiredSessions();
+}, SESSION_SWEEP_INTERVAL).unref();
 
 function requireUserSession(req, res, next) {
   const user = getSessionUser(req);

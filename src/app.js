@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const helmet = require('helmet');
 const path = require('path');
 
 const { requireAdminToken, extractAdminToken } = require('./auth');
@@ -36,10 +37,20 @@ const {
 } = require('./providers');
 const { createRateLimiter, createAuthThrottle } = require('./rate-limit');
 const {
+  buildCheckoutSessionStub,
+  getPaymentReadiness,
+  verifyStripeWebhookSignature,
+} = require('./payments');
+const { getPricingPlans } = require('./pricing-plans');
+const {
+  CORS_ALLOWED_ORIGINS,
   PROXY_RATE_LIMIT_MAX_REQUESTS,
   PROXY_RATE_LIMIT_WINDOW_MS,
   PROXY_UPSTREAM_TIMEOUT_MS,
+  SECURITY_HEADERS_ENABLED,
+  TRUST_PROXY,
 } = require('./config');
+const { hashIdentifier, logSecurityEvent } = require('./security-log');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const CONSOLE_FILE = path.join(__dirname, 'console.html');
@@ -132,12 +143,40 @@ function requireSameOriginForMutations(req, res, next) {
     || (!requestOrigin && isSameOrigin(referer, expectedOrigin));
 
   if (!valid) {
+    logSecurityEvent('csrf_blocked', req, {
+      request_origin: requestOrigin || null,
+      referer: referer || null,
+      expected_origin: expectedOrigin || null,
+    });
     res.status(403).json({
       error: {
         message: 'Cross-site request blocked',
         code: 'csrf_blocked',
       },
     });
+    return;
+  }
+
+  next();
+}
+
+function applyCors(req, res, next) {
+  if (!CORS_ALLOWED_ORIGINS.length) {
+    next();
+    return;
+  }
+
+  const origin = String(req.get('origin') || '').toLowerCase();
+  if (origin && CORS_ALLOWED_ORIGINS.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', req.get('origin'));
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Token');
+    res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.set('Vary', 'Origin');
+  }
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
     return;
   }
 
@@ -221,13 +260,36 @@ async function runProxyAndTrack({ inferPayload, endpointName, responseFormatter,
 function createApp() {
   const app = express();
 
-  app.use(express.json({ limit: '1mb' }));
+  if (TRUST_PROXY) {
+    app.set('trust proxy', 1);
+  }
+
+  if (SECURITY_HEADERS_ENABLED) {
+    app.use(helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }));
+  }
+
+  app.use(applyCors);
+  app.use(express.json({
+    limit: '1mb',
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }));
 
   // Serve static files from public directory.
   app.use(express.static(PUBLIC_DIR));
 
-  const signupThrottle = createAuthThrottle({ keyFn: authThrottleKey });
-  const loginThrottle = createAuthThrottle({ keyFn: authThrottleKey });
+  const authBlockedLogger = (req, retryAfterSeconds) => {
+    logSecurityEvent('auth_rate_limited', req, {
+      email_hash: hashIdentifier(req.body?.email),
+      retry_after_seconds: retryAfterSeconds,
+    });
+  };
+  const signupThrottle = createAuthThrottle({ keyFn: authThrottleKey, onBlocked: authBlockedLogger });
+  const loginThrottle = createAuthThrottle({ keyFn: authThrottleKey, onBlocked: authBlockedLogger });
 
   app.get('/auth', (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -236,35 +298,43 @@ function createApp() {
 
   app.post('/auth/signup', signupThrottle.preflight, asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
+    const emailHash = hashIdentifier(email);
     try {
       const user = await createUser(email, password);
       signupThrottle.recordSuccess(req);
       const token = createSession(user);
-      setSessionCookie(res, token);
+      setSessionCookie(req, res, token);
+      logSecurityEvent('auth_signup_success', req, { email_hash: emailHash, user_id: user.id });
       res.status(201).json({ user });
     } catch (error) {
       signupThrottle.recordFailure(req);
       const code = String(error.message || '').includes('exists') ? 409 : 400;
+      logSecurityEvent('auth_signup_failed', req, { email_hash: emailHash, reason: String(error.message || 'invalid_signup') });
       res.status(code).json({ error: { message: error.message, code: 'invalid_signup' } });
     }
   }));
 
   app.post('/auth/login', loginThrottle.preflight, asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
+    const emailHash = hashIdentifier(email);
     const user = await authenticateUser(email, password);
     if (!user) {
       loginThrottle.recordFailure(req);
+      logSecurityEvent('auth_login_failed', req, { email_hash: emailHash, reason: 'invalid_credentials' });
       res.status(401).json({ error: { message: 'Invalid email/password', code: 'unauthorized' } });
       return;
     }
     loginThrottle.recordSuccess(req);
     const token = createSession(user);
-    setSessionCookie(res, token);
+    setSessionCookie(req, res, token);
+    logSecurityEvent('auth_login_success', req, { email_hash: emailHash, user_id: user.id });
     res.json({ user });
   }));
 
   app.post('/auth/logout', requireSameOriginForMutations, (req, res) => {
+    const user = getSessionUser(req);
     clearSessionCookie(req, res);
+    logSecurityEvent('auth_logout', req, { user_id: user?.id || null });
     res.json({ ok: true });
   });
 
@@ -295,6 +365,49 @@ function createApp() {
   app.get('/health.json', (req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json(getHealthData());
+  });
+
+  app.get('/api/payments/readiness', (req, res) => {
+    const readiness = getPaymentReadiness();
+    const plans = getPricingPlans();
+    res.json({
+      enabled: readiness.enabled,
+      missing: readiness.missing,
+      plans,
+    });
+  });
+
+  app.get('/api/payments/plans', (req, res) => {
+    res.json({ plans: getPricingPlans() });
+  });
+
+  app.post('/api/user/payments/checkout-session', requireUserSession, requireSameOriginForMutations, (req, res) => {
+    const result = buildCheckoutSessionStub({
+      userId: req.user.id,
+      customerEmail: req.user.email,
+      planId: req.body?.plan_id,
+      origin: getRequestOrigin(req),
+    });
+    res.status(result.statusCode).json(result.payload);
+  });
+
+  app.post('/api/payments/webhook/stripe', (req, res) => {
+    const verification = verifyStripeWebhookSignature(req.rawBody, req.get('stripe-signature'));
+    if (!verification.ok) {
+      res.status(400).json({
+        error: {
+          message: 'Invalid Stripe signature',
+          code: verification.reason,
+        },
+      });
+      return;
+    }
+
+    // Skeleton handler only: intentionally acknowledges without mutating state.
+    res.json({
+      received: true,
+      status: 'stub_ignored',
+    });
   });
 
   const proxyRateLimiter = createRateLimiter({
