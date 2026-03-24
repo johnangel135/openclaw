@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 
-function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv, corsAllowedOrigins, securityHeadersEnabled }) {
+async function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv, corsAllowedOrigins, securityHeadersEnabled, redisUrl }) {
   if (adminToken === undefined) {
     delete process.env.CONSOLE_ADMIN_TOKEN;
   } else {
@@ -35,6 +35,12 @@ function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv, corsAllowedOrigins, 
     process.env.SECURITY_HEADERS_ENABLED = securityHeadersEnabled;
   }
 
+  if (redisUrl === undefined) {
+    delete process.env.REDIS_URL;
+  } else {
+    process.env.REDIS_URL = redisUrl;
+  }
+
   delete require.cache[require.resolve('../src/config')];
   delete require.cache[require.resolve('../src/auth')];
   delete require.cache[require.resolve('../src/db')];
@@ -45,11 +51,11 @@ function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv, corsAllowedOrigins, 
 
   const { createApp } = require('../src/app');
   const userAuth = require('../src/user-auth');
-  return { app: createApp(), userAuth };
+  return { app: await createApp(), userAuth };
 }
 
 test('health endpoint keeps working without DATABASE_URL', async () => {
-  const { app } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+  const { app } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
 
   const response = await request(app)
     .get('/health')
@@ -60,7 +66,7 @@ test('health endpoint keeps working without DATABASE_URL', async () => {
 });
 
 test('protected usage endpoints require token and database config', async () => {
-  const { app } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+  const { app } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
 
   const unauthorized = await request(app).get('/api/usage/summary');
   assert.equal(unauthorized.status, 401);
@@ -74,7 +80,7 @@ test('protected usage endpoints require token and database config', async () => 
 });
 
 test('session cookie includes secure attributes in production', async () => {
-  const { userAuth } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined, nodeEnv: 'production' });
+  const { userAuth } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined, nodeEnv: 'production' });
 
   const headers = {};
   const mockResponse = {
@@ -93,8 +99,8 @@ test('session cookie includes secure attributes in production', async () => {
 });
 
 test('blocks cross-site logout and user mutating requests without same-origin header', async () => {
-  const { app, userAuth } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
-  const token = userAuth.createSession({ id: 'u1', email: 'u1@example.com' });
+  const { app, userAuth } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+  const token = await userAuth.createSession({ id: 'u1', email: 'u1@example.com' });
 
   const logoutBlocked = await request(app)
     .post('/auth/logout');
@@ -122,7 +128,7 @@ test('blocks cross-site logout and user mutating requests without same-origin he
 });
 
 test('auth page is served with accessibility and onboarding content', async () => {
-  const { app } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+  const { app } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
 
   const response = await request(app)
     .get('/auth')
@@ -135,13 +141,13 @@ test('auth page is served with accessibility and onboarding content', async () =
 });
 
 test('console route redirects when logged out and serves dashboard when logged in', async () => {
-  const { app, userAuth } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+  const { app, userAuth } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
 
   const loggedOut = await request(app).get('/console');
   assert.equal(loggedOut.status, 302);
   assert.equal(loggedOut.headers.location, '/auth');
 
-  const token = userAuth.createSession({ id: 'u2', email: 'u2@example.com' });
+  const token = await userAuth.createSession({ id: 'u2', email: 'u2@example.com' });
   const loggedIn = await request(app)
     .get('/console')
     .set('Cookie', `openclaw_session=${token}`);
@@ -152,7 +158,7 @@ test('console route redirects when logged out and serves dashboard when logged i
 });
 
 test('security headers are applied by default', async () => {
-  const { app } = loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+  const { app } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
 
   const response = await request(app).get('/health').set('accept', 'application/json');
 
@@ -162,7 +168,7 @@ test('security headers are applied by default', async () => {
 });
 
 test('cors allowlist permits configured origin and preflight', async () => {
-  const { app } = loadAppWithEnv({
+  const { app } = await loadAppWithEnv({
     adminToken: 'secret-token',
     databaseUrl: undefined,
     corsAllowedOrigins: 'https://console.example.com',

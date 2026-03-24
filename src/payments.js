@@ -9,8 +9,14 @@ const {
   STRIPE_SUCCESS_URL,
   STRIPE_CANCEL_URL,
   STRIPE_CHECKOUT_MODE,
+  STRIPE_BILLING_PORTAL_RETURN_URL,
 } = require('./config');
 const { getPlanById } = require('./pricing-plans');
+const {
+  getUserSubscription,
+  recordPaymentEvent,
+  upsertUserSubscription,
+} = require('./db');
 
 function getPaymentReadiness() {
   const missing = [];
@@ -226,9 +232,282 @@ async function createStripeCheckoutSession({ userId, planId, customerEmail, orig
   }
 }
 
+function normalizeStripeStatus(status) {
+  const value = String(status || '').toLowerCase();
+  if (!value) return 'unknown';
+  return value;
+}
+
+function isActiveSubscriptionStatus(status) {
+  return ['active', 'trialing'].includes(String(status || '').toLowerCase());
+}
+
+function deriveSubscriptionRecordFromStripeObject(stripeObject, fallback = {}) {
+  const metadata = stripeObject?.metadata || {};
+  const itemPriceId = stripeObject?.items?.data?.[0]?.price?.id || null;
+
+  return {
+    user_id: metadata.user_id || stripeObject?.client_reference_id || fallback.user_id || null,
+    provider: 'stripe',
+    status: normalizeStripeStatus(stripeObject?.status || fallback.status || 'unknown'),
+    stripe_customer_id: stripeObject?.customer || fallback.stripe_customer_id || null,
+    stripe_subscription_id: stripeObject?.id || fallback.stripe_subscription_id || null,
+    stripe_price_id: itemPriceId || metadata.plan_id || fallback.stripe_price_id || null,
+    current_period_end: stripeObject?.current_period_end
+      ? new Date(Number(stripeObject.current_period_end) * 1000).toISOString()
+      : fallback.current_period_end || null,
+    cancel_at_period_end: Boolean(stripeObject?.cancel_at_period_end),
+    metadata: {
+      ...fallback.metadata,
+      ...metadata,
+      stripe_status: normalizeStripeStatus(stripeObject?.status),
+    },
+  };
+}
+
+async function processStripeWebhookEvent(event) {
+  const eventId = String(event?.id || '').trim();
+  const eventType = String(event?.type || '').trim();
+
+  if (!eventId || !eventType) {
+    return {
+      statusCode: 400,
+      payload: {
+        error: {
+          code: 'invalid_event_payload',
+          message: 'Webhook event missing id or type',
+        },
+      },
+    };
+  }
+
+  const recorded = await recordPaymentEvent({
+    provider: 'stripe',
+    eventId,
+    eventType,
+    payload: {
+      id: event.id,
+      type: event.type,
+      created: event.created,
+      data: event.data || {},
+    },
+  });
+
+  if (!recorded.inserted) {
+    return {
+      statusCode: 200,
+      payload: {
+        received: true,
+        duplicate: true,
+      },
+    };
+  }
+
+  const object = event?.data?.object || {};
+
+  if (eventType === 'checkout.session.completed') {
+    const userId = object?.metadata?.user_id || object?.client_reference_id || null;
+    const stripeSubscriptionId = object?.subscription || null;
+    const stripeCustomerId = object?.customer || null;
+    const stripePriceId = object?.metadata?.plan_id || null;
+
+    if (userId) {
+      await upsertUserSubscription({
+        user_id: userId,
+        provider: 'stripe',
+        status: 'active',
+        stripe_customer_id: stripeCustomerId,
+        stripe_subscription_id: stripeSubscriptionId,
+        stripe_price_id: stripePriceId,
+        current_period_end: null,
+        cancel_at_period_end: false,
+        metadata: {
+          user_id: userId,
+          plan_id: object?.metadata?.plan_id || null,
+          checkout_session_id: object?.id || null,
+        },
+      });
+    }
+
+    return {
+      statusCode: 200,
+      payload: {
+        received: true,
+        processed: true,
+        event_type: eventType,
+      },
+    };
+  }
+
+  if (eventType === 'customer.subscription.updated' || eventType === 'customer.subscription.deleted') {
+    const fallback = {
+      user_id: object?.metadata?.user_id || null,
+      status: eventType === 'customer.subscription.deleted' ? 'canceled' : 'unknown',
+    };
+
+    const record = deriveSubscriptionRecordFromStripeObject(object, fallback);
+    if (eventType === 'customer.subscription.deleted') {
+      record.status = 'canceled';
+    }
+
+    if (record.user_id) {
+      await upsertUserSubscription(record);
+    }
+
+    return {
+      statusCode: 200,
+      payload: {
+        received: true,
+        processed: true,
+        event_type: eventType,
+      },
+    };
+  }
+
+  return {
+    statusCode: 200,
+    payload: {
+      received: true,
+      ignored: true,
+      event_type: eventType,
+    },
+  };
+}
+
+function toEntitlement(subscription) {
+  if (!subscription) {
+    return {
+      provider: 'stripe',
+      status: 'none',
+      active: false,
+      plan_id: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+    };
+  }
+
+  return {
+    provider: subscription.provider,
+    status: subscription.status,
+    active: isActiveSubscriptionStatus(subscription.status),
+    plan_id: subscription.stripe_price_id || subscription.metadata?.plan_id || null,
+    current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end).toISOString() : null,
+    cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
+  };
+}
+
+async function getUserEntitlement(userId) {
+  const subscription = await getUserSubscription(userId, 'stripe');
+  return toEntitlement(subscription);
+}
+
+async function createStripeBillingPortalSession({ userId, origin }) {
+  const fallbackOrigin = origin || 'http://localhost:3000';
+  const returnUrl = STRIPE_BILLING_PORTAL_RETURN_URL || `${fallbackOrigin}/billing`;
+
+  if (STRIPE_CHECKOUT_MODE === 'stub') {
+    return {
+      statusCode: 202,
+      payload: {
+        portal: {
+          provider: 'stripe',
+          status: 'stub_not_submitted',
+          requires_provider_integration: true,
+          return_url: returnUrl,
+        },
+      },
+    };
+  }
+
+  if (!STRIPE_SECRET_KEY) {
+    return {
+      statusCode: 503,
+      payload: {
+        error: {
+          code: 'payments_not_configured',
+          message: 'Payments are not fully configured',
+          missing: ['STRIPE_SECRET_KEY'],
+        },
+      },
+    };
+  }
+
+  const subscription = await getUserSubscription(userId, 'stripe');
+  const customerId = subscription?.stripe_customer_id || null;
+  if (!customerId) {
+    return {
+      statusCode: 409,
+      payload: {
+        error: {
+          code: 'customer_not_found',
+          message: 'No Stripe customer found for this user',
+        },
+      },
+    };
+  }
+
+  try {
+    const body = new URLSearchParams({
+      customer: customerId,
+      return_url: returnUrl,
+    });
+
+    const response = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    });
+
+    const stripeBody = await response.json();
+    if (!response.ok) {
+      return {
+        statusCode: 502,
+        payload: {
+          error: {
+            code: 'stripe_billing_portal_failed',
+            message: stripeBody?.error?.message || 'Stripe billing portal session failed',
+          },
+        },
+      };
+    }
+
+    return {
+      statusCode: 200,
+      payload: {
+        portal: {
+          provider: 'stripe',
+          status: 'created',
+          id: stripeBody.id,
+          url: stripeBody.url,
+          return_url: returnUrl,
+        },
+      },
+    };
+  } catch {
+    return {
+      statusCode: 502,
+      payload: {
+        error: {
+          code: 'stripe_billing_portal_unreachable',
+          message: 'Stripe billing portal request failed',
+        },
+      },
+    };
+  }
+}
+
 module.exports = {
+  createStripeBillingPortalSession,
   createStripeCheckoutSession,
+  deriveSubscriptionRecordFromStripeObject,
   getPaymentReadiness,
+  getUserEntitlement,
+  isActiveSubscriptionStatus,
   parseStripeSignatureHeader,
+  processStripeWebhookEvent,
+  toEntitlement,
   verifyStripeWebhookSignature,
 };

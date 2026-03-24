@@ -24,6 +24,7 @@ OpenClaw is a lightweight Express.js web application featuring:
 - **LLM Token & Cost Console** — protected `/console` dashboard with token/cost analytics
 - **LLM proxy endpoints** — `/v1/chat/completions`, `/v1/responses`, `/api/llm/infer`
 - **Postgres usage persistence** — stores request-level usage with 90-day default retention
+- **Optional Redis production mode** — shared session store + distributed rate limiting with automatic in-memory fallback
 - **Payments readiness baseline** — Stripe-ready scaffolding with safe checkout/webhook stubs
 
 ## Quick Start
@@ -50,6 +51,11 @@ OPENAI_API_KEY=...
 ANTHROPIC_API_KEY=...
 GEMINI_API_KEY=...
 USAGE_RETENTION_DAYS=90
+
+# Optional (recommended for multi-instance deployments)
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_CONNECT_TIMEOUT_MS=3000
+REDIS_KEY_PREFIX=openclaw:
 ```
 
 You can start from `.env.example` and fill in real secrets.
@@ -90,7 +96,7 @@ See `PAYMENTS.md` for threat model notes and implementation details.
 │   ├── console.html      # Protected analytics dashboard UI
 │   ├── db.js             # Postgres init, analytics queries, retention purge
 │   ├── providers.js      # OpenAI/Anthropic/Gemini adapters and usage extraction
-│   ├── rate-limit.js     # In-memory proxy request limiter
+│   ├── rate-limit.js     # Proxy/auth throttling (Redis optional, in-memory fallback)
 │   └── index.js          # Bootstrap and server startup
 ├── public/
 │   ├── index.html        # Landing page

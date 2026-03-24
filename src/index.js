@@ -4,9 +4,11 @@ const { createApp } = require('./app');
 const { PORT, USAGE_RETENTION_DAYS } = require('./config');
 const { initDatabase, isDatabaseConfigured, startRetentionPurgeScheduler } = require('./db');
 
-const app = createApp();
+let app;
 
 async function bootstrap() {
+  app = await createApp();
+
   if (isDatabaseConfigured()) {
     try {
       await initDatabase();
@@ -26,4 +28,9 @@ async function bootstrap() {
 
 bootstrap();
 
-module.exports = app;
+module.exports = {
+  bootstrap,
+  get app() {
+    return app;
+  },
+};

@@ -40,6 +40,12 @@ USAGE_RETENTION_DAYS=90
 PROXY_UPSTREAM_TIMEOUT_MS=30000
 PROXY_RATE_LIMIT_MAX_REQUESTS=60
 PROXY_RATE_LIMIT_WINDOW_MS=60000
+
+# Optional: Redis for distributed session state and throttling
+# Falls back safely to in-memory mode when unset/unavailable
+REDIS_URL=
+REDIS_CONNECT_TIMEOUT_MS=3000
+REDIS_KEY_PREFIX=openclaw:
 ```
 
 Generate an encryption key:

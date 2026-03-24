@@ -12,6 +12,7 @@ const {
   createUser,
   getSessionUser,
   getUserApiKeys,
+  initSessionStore,
   maskApiKeys,
   requireUserSession,
   setSessionCookie,
@@ -35,10 +36,13 @@ const {
   toOpenAIChatResponse,
   toOpenAIResponsesResponse,
 } = require('./providers');
-const { createRateLimiter, createAuthThrottle } = require('./rate-limit');
+const { createRateLimiter, createAuthThrottle, createLimiterDependencies } = require('./rate-limit');
 const {
+  createStripeBillingPortalSession,
   createStripeCheckoutSession,
   getPaymentReadiness,
+  getUserEntitlement,
+  processStripeWebhookEvent,
   verifyStripeWebhookSignature,
 } = require('./payments');
 const { getPricingPlans } = require('./pricing-plans');
@@ -258,8 +262,11 @@ async function runProxyAndTrack({ inferPayload, endpointName, responseFormatter,
   }
 }
 
-function createApp() {
+async function createApp() {
   const app = express();
+
+  const limiterDeps = await createLimiterDependencies();
+  await initSessionStore();
 
   if (TRUST_PROXY) {
     app.set('trust proxy', 1);
@@ -289,8 +296,16 @@ function createApp() {
       retry_after_seconds: retryAfterSeconds,
     });
   };
-  const signupThrottle = createAuthThrottle({ keyFn: authThrottleKey, onBlocked: authBlockedLogger });
-  const loginThrottle = createAuthThrottle({ keyFn: authThrottleKey, onBlocked: authBlockedLogger });
+  const signupThrottle = createAuthThrottle({
+    keyFn: authThrottleKey,
+    onBlocked: authBlockedLogger,
+    store: limiterDeps.authThrottleStore,
+  });
+  const loginThrottle = createAuthThrottle({
+    keyFn: authThrottleKey,
+    onBlocked: authBlockedLogger,
+    store: limiterDeps.authThrottleStore,
+  });
 
   app.get('/auth', (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -303,7 +318,7 @@ function createApp() {
     try {
       const user = await createUser(email, password);
       signupThrottle.recordSuccess(req);
-      const token = createSession(user);
+      const token = await createSession(user);
       setSessionCookie(req, res, token);
       logSecurityEvent('auth_signup_success', req, { email_hash: emailHash, user_id: user.id });
       res.status(201).json({ user });
@@ -326,27 +341,27 @@ function createApp() {
       return;
     }
     loginThrottle.recordSuccess(req);
-    const token = createSession(user);
+    const token = await createSession(user);
     setSessionCookie(req, res, token);
     logSecurityEvent('auth_login_success', req, { email_hash: emailHash, user_id: user.id });
     res.json({ user });
   }));
 
-  app.post('/auth/logout', requireSameOriginForMutations, (req, res) => {
-    const user = getSessionUser(req);
-    clearSessionCookie(req, res);
+  app.post('/auth/logout', requireSameOriginForMutations, asyncHandler(async (req, res) => {
+    const user = await getSessionUser(req);
+    await clearSessionCookie(req, res);
     logSecurityEvent('auth_logout', req, { user_id: user?.id || null });
     res.json({ ok: true });
-  });
+  }));
 
-  app.get('/auth/me', (req, res) => {
-    const user = getSessionUser(req);
+  app.get('/auth/me', asyncHandler(async (req, res) => {
+    const user = await getSessionUser(req);
     if (!user) {
       res.status(401).json({ error: { message: 'Login required', code: 'unauthorized' } });
       return;
     }
     res.json({ user });
-  });
+  }));
 
   app.get('/health', (req, res) => {
     const healthData = getHealthData();
@@ -414,6 +429,7 @@ function createApp() {
   const proxyRateLimiter = createRateLimiter({
     maxRequests: PROXY_RATE_LIMIT_MAX_REQUESTS,
     windowMs: PROXY_RATE_LIMIT_WINDOW_MS,
+    store: limiterDeps.rateLimitStore,
     keyFn: (req) => {
       const token = extractAdminToken(req);
       return token ? `token:${token}` : `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
@@ -608,14 +624,14 @@ function createApp() {
     res.json(data);
   }));
 
-  app.get('/console', (req, res) => {
-    if (!getSessionUser(req)) {
+  app.get('/console', asyncHandler(async (req, res) => {
+    if (!await getSessionUser(req)) {
       res.redirect('/auth');
       return;
     }
     res.set('Cache-Control', 'no-store');
     res.sendFile(CONSOLE_FILE);
-  });
+  }));
 
   // Catch-all: serve index.html.
   app.get('*', (req, res) => {

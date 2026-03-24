@@ -4,19 +4,23 @@ const crypto = require('crypto');
 const { Pool } = require('pg');
 const {
   DATABASE_URL,
-  USER_KEYS_ENCRYPTION_KEY,
+  REDIS_URL,
   SESSION_COOKIE_DOMAIN,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_SAMESITE,
   SESSION_COOKIE_SECURE,
+  USER_KEYS_ENCRYPTION_KEY,
 } = require('./config');
 const { getPgSslConfig } = require('./pg-ssl');
+const { createOptionalRedisClient, prefixedKey } = require('./redis');
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const SESSION_SWEEP_INTERVAL = 1000 * 60 * 30;
-const sessions = new Map();
 let pool;
 let initialized = false;
+
+const memorySessions = new Map();
+let sessionStore = createInMemorySessionStore(memorySessions);
 
 function getEncryptionKeyBuffer() {
   const key = String(USER_KEYS_ENCRYPTION_KEY || '').trim();
@@ -245,27 +249,6 @@ function resolveSecureCookie(req) {
   return false;
 }
 
-function createSession(user) {
-  const token = crypto.randomBytes(24).toString('hex');
-  sessions.set(token, {
-    user,
-    expiresAt: Date.now() + SESSION_TTL_MS,
-  });
-  return token;
-}
-
-function getSessionUser(req) {
-  const cookies = parseCookies(req);
-  const token = cookies[SESSION_COOKIE_NAME] || '';
-  const session = sessions.get(token);
-  if (!session) return null;
-  if (Date.now() > session.expiresAt) {
-    sessions.delete(token);
-    return null;
-  }
-  return session.user || null;
-}
-
 function buildSessionCookie(req, value, maxAgeSeconds) {
   const secureFlag = resolveSecureCookie(req) ? '; Secure' : '';
   const domainFlag = SESSION_COOKIE_DOMAIN ? `; Domain=${SESSION_COOKIE_DOMAIN}` : '';
@@ -273,36 +256,143 @@ function buildSessionCookie(req, value, maxAgeSeconds) {
   return `${SESSION_COOKIE_NAME}=${value}; Path=/; HttpOnly${sameSite}${secureFlag}${domainFlag}; Priority=High; Max-Age=${maxAgeSeconds}`;
 }
 
-function sweepExpiredSessions(now = Date.now()) {
-  for (const [token, session] of sessions.entries()) {
-    if (!session || session.expiresAt <= now) {
-      sessions.delete(token);
-    }
+function createInMemorySessionStore(map) {
+  return {
+    async set(token, record) {
+      map.set(token, record);
+    },
+    async get(token) {
+      return map.get(token) || null;
+    },
+    async delete(token) {
+      map.delete(token);
+    },
+    async sweep(now = Date.now()) {
+      for (const [token, session] of map.entries()) {
+        if (!session || session.expiresAt <= now) {
+          map.delete(token);
+        }
+      }
+    },
+  };
+}
+
+function createRedisSessionStore(client) {
+  return {
+    async set(token, record) {
+      const ttlMs = Math.max(Number(record.expiresAt || 0) - Date.now(), 1000);
+      await client.pSetEx(prefixedKey(`session:${token}`), ttlMs, JSON.stringify(record));
+    },
+    async get(token) {
+      const raw = await client.get(prefixedKey(`session:${token}`));
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    },
+    async delete(token) {
+      await client.del(prefixedKey(`session:${token}`));
+    },
+    async sweep() {
+      // Redis TTL cleanup handles expiry.
+    },
+  };
+}
+
+async function initSessionStore({ logger = console, redisUrl = REDIS_URL, clientFactory } = {}) {
+  const redisClient = await createOptionalRedisClient({
+    redisUrl,
+    clientFactory,
+    logger,
+    role: 'session redis',
+  });
+
+  if (!redisClient) {
+    sessionStore = createInMemorySessionStore(memorySessions);
+    return { mode: 'memory' };
   }
+
+  const redisStore = createRedisSessionStore(redisClient);
+  sessionStore = {
+    async set(token, record) {
+      memorySessions.set(token, record);
+      await redisStore.set(token, record);
+    },
+    async get(token) {
+      const local = memorySessions.get(token);
+      if (local) return local;
+      const remote = await redisStore.get(token);
+      if (remote) memorySessions.set(token, remote);
+      return remote;
+    },
+    async delete(token) {
+      memorySessions.delete(token);
+      await redisStore.delete(token);
+    },
+    async sweep(now) {
+      await createInMemorySessionStore(memorySessions).sweep(now);
+    },
+  };
+
+  return { mode: 'redis', redisClient };
+}
+
+async function createSession(user) {
+  const token = crypto.randomBytes(24).toString('hex');
+  await sessionStore.set(token, {
+    user,
+    expiresAt: Date.now() + SESSION_TTL_MS,
+  });
+  return token;
+}
+
+async function getSessionUser(req) {
+  const cookies = parseCookies(req);
+  const token = cookies[SESSION_COOKIE_NAME] || '';
+  if (!token) return null;
+
+  const session = await sessionStore.get(token);
+  if (!session) return null;
+  if (Date.now() > session.expiresAt) {
+    await sessionStore.delete(token);
+    return null;
+  }
+  return session.user || null;
 }
 
 function setSessionCookie(req, res, token) {
   res.setHeader('Set-Cookie', buildSessionCookie(req, token, Math.floor(SESSION_TTL_MS / 1000)));
 }
 
-function clearSessionCookie(req, res) {
+async function clearSessionCookie(req, res) {
   const token = parseCookies(req)[SESSION_COOKIE_NAME];
-  if (token) sessions.delete(token);
+  if (token) {
+    await sessionStore.delete(token);
+  }
   res.setHeader('Set-Cookie', buildSessionCookie(req, '', 0));
 }
 
 setInterval(() => {
-  sweepExpiredSessions();
+  sessionStore.sweep(Date.now()).catch(() => {
+    // best-effort only
+  });
 }, SESSION_SWEEP_INTERVAL).unref();
 
 function requireUserSession(req, res, next) {
-  const user = getSessionUser(req);
-  if (!user) {
-    res.status(401).json({ error: { message: 'Login required', code: 'unauthorized' } });
-    return;
-  }
-  req.user = user;
-  next();
+  getSessionUser(req)
+    .then((user) => {
+      if (!user) {
+        res.status(401).json({ error: { message: 'Login required', code: 'unauthorized' } });
+        return;
+      }
+      req.user = user;
+      next();
+    })
+    .catch(() => {
+      res.status(401).json({ error: { message: 'Login required', code: 'unauthorized' } });
+    });
 }
 
 module.exports = {
@@ -314,6 +404,7 @@ module.exports = {
   encryptSecret,
   getSessionUser,
   getUserApiKeys,
+  initSessionStore,
   maskApiKeys,
   requireUserSession,
   setSessionCookie,

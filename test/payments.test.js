@@ -13,9 +13,10 @@ function setEnv(key, value) {
   process.env[key] = value;
 }
 
-function loadAppForPayments(env = {}) {
+async function loadAppForPayments(env = {}) {
   setEnv('CONSOLE_ADMIN_TOKEN', env.adminToken || 'admin-token');
   setEnv('DATABASE_URL', env.databaseUrl);
+  setEnv('REDIS_URL', env.redisUrl);
   setEnv('STRIPE_SECRET_KEY', env.stripeSecretKey);
   setEnv('STRIPE_WEBHOOK_SECRET', env.stripeWebhookSecret);
   setEnv('STRIPE_PRICE_STARTER', env.stripePriceStarter);
@@ -34,11 +35,11 @@ function loadAppForPayments(env = {}) {
 
   const { createApp } = require('../src/app');
   const userAuth = require('../src/user-auth');
-  return { app: createApp(), userAuth };
+  return { app: await createApp(), userAuth };
 }
 
 test('payment readiness reports disabled when Stripe env vars are absent', async () => {
-  const { app } = loadAppForPayments({
+  const { app } = await loadAppForPayments({
     stripeSecretKey: '',
     stripeWebhookSecret: '',
     stripePriceStarter: '',
@@ -55,14 +56,14 @@ test('payment readiness reports disabled when Stripe env vars are absent', async
 });
 
 test('checkout session endpoint fails gracefully when payments are not configured', async () => {
-  const { app, userAuth } = loadAppForPayments({
+  const { app, userAuth } = await loadAppForPayments({
     stripeSecretKey: '',
     stripeWebhookSecret: '',
     stripePriceStarter: '',
     stripePricePro: '',
   });
 
-  const token = userAuth.createSession({ id: 'u-pay-1', email: 'payer@example.com' });
+  const token = await userAuth.createSession({ id: 'u-pay-1', email: 'payer@example.com' });
   const response = await request(app)
     .post('/api/user/payments/checkout-session')
     .set('Cookie', `openclaw_session=${token}`)
@@ -75,7 +76,7 @@ test('checkout session endpoint fails gracefully when payments are not configure
 });
 
 test('checkout session endpoint returns payment stub when configured in stub mode', async () => {
-  const { app, userAuth } = loadAppForPayments({
+  const { app, userAuth } = await loadAppForPayments({
     stripeSecretKey: 'sk_test_123',
     stripeWebhookSecret: 'whsec_test_123',
     stripePriceStarter: 'price_starter_123',
@@ -83,7 +84,7 @@ test('checkout session endpoint returns payment stub when configured in stub mod
     stripeCheckoutMode: 'stub',
   });
 
-  const token = userAuth.createSession({ id: 'u-pay-2', email: 'payer2@example.com' });
+  const token = await userAuth.createSession({ id: 'u-pay-2', email: 'payer2@example.com' });
   const response = await request(app)
     .post('/api/user/payments/checkout-session')
     .set('Cookie', `openclaw_session=${token}`)
@@ -106,7 +107,7 @@ test('checkout session endpoint creates Stripe session in live mode', async () =
   });
 
   try {
-    const { app, userAuth } = loadAppForPayments({
+    const { app, userAuth } = await loadAppForPayments({
       stripeSecretKey: 'sk_test_123',
       stripeWebhookSecret: 'whsec_test_123',
       stripePriceStarter: 'price_starter_123',
@@ -114,7 +115,7 @@ test('checkout session endpoint creates Stripe session in live mode', async () =
       stripeCheckoutMode: 'live',
     });
 
-    const token = userAuth.createSession({ id: 'u-pay-3', email: 'payer3@example.com' });
+    const token = await userAuth.createSession({ id: 'u-pay-3', email: 'payer3@example.com' });
     const response = await request(app)
       .post('/api/user/payments/checkout-session')
       .set('Cookie', `openclaw_session=${token}`)
@@ -132,7 +133,7 @@ test('checkout session endpoint creates Stripe session in live mode', async () =
 
 test('stripe webhook signature skeleton validates signed payload and rejects tampered payload', async () => {
   const webhookSecret = 'whsec_test_signing_secret';
-  const { app } = loadAppForPayments({
+  const { app } = await loadAppForPayments({
     stripeSecretKey: 'sk_test_123',
     stripeWebhookSecret: webhookSecret,
     stripePriceStarter: 'price_starter_123',

@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const { Pool } = require('pg');
 const { DATABASE_URL, USAGE_RETENTION_DAYS } = require('./config');
 const { getPgSslConfig } = require('./pg-ssl');
@@ -88,6 +89,40 @@ async function initDatabase() {
   await db.query('CREATE INDEX IF NOT EXISTS idx_llm_usage_events_created_at ON llm_usage_events (created_at DESC)');
   await db.query('CREATE INDEX IF NOT EXISTS idx_llm_usage_events_provider_model_created_at ON llm_usage_events (provider, model, created_at DESC)');
   await db.query('CREATE INDEX IF NOT EXISTS idx_llm_usage_events_user_created_at ON llm_usage_events (user_id, created_at DESC)');
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS user_subscriptions (
+      user_id TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      status TEXT NOT NULL,
+      stripe_customer_id TEXT,
+      stripe_subscription_id TEXT,
+      stripe_price_id TEXT,
+      current_period_end TIMESTAMPTZ,
+      cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, provider)
+    )
+  `);
+  await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_subscriptions_stripe_subscription_id ON user_subscriptions (stripe_subscription_id) WHERE stripe_subscription_id IS NOT NULL');
+  await db.query('CREATE INDEX IF NOT EXISTS idx_user_subscriptions_provider_status ON user_subscriptions (provider, status)');
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS payment_events (
+      id BIGSERIAL PRIMARY KEY,
+      provider TEXT NOT NULL,
+      event_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      payload_hash TEXT NOT NULL,
+      payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+      processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (provider, event_id)
+    )
+  `);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_payment_events_provider_created_at ON payment_events (provider, created_at DESC)');
 
   for (const [provider, model, inputPrice, outputPrice] of SEEDED_MODEL_PRICING) {
     await db.query(
@@ -452,6 +487,122 @@ function startRetentionPurgeScheduler(retentionDays = USAGE_RETENTION_DAYS) {
   }
 }
 
+function toIsoOrNull(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function hashPaymentPayload(payload) {
+  const serialized = typeof payload === 'string' ? payload : JSON.stringify(payload || {});
+  return crypto.createHash('sha256').update(serialized, 'utf8').digest('hex');
+}
+
+async function recordPaymentEvent({ provider, eventId, eventType, payload }) {
+  const db = getPool();
+  const result = await db.query(
+    `
+    INSERT INTO payment_events (provider, event_id, event_type, payload_hash, payload)
+    VALUES ($1, $2, $3, $4, $5::jsonb)
+    ON CONFLICT (provider, event_id) DO NOTHING
+    RETURNING id
+    `,
+    [
+      provider,
+      eventId,
+      eventType,
+      hashPaymentPayload(payload),
+      JSON.stringify(payload || {}),
+    ],
+  );
+
+  return {
+    inserted: result.rowCount > 0,
+  };
+}
+
+async function upsertUserSubscription(record) {
+  const db = getPool();
+  const result = await db.query(
+    `
+    INSERT INTO user_subscriptions (
+      user_id,
+      provider,
+      status,
+      stripe_customer_id,
+      stripe_subscription_id,
+      stripe_price_id,
+      current_period_end,
+      cancel_at_period_end,
+      metadata,
+      created_at,
+      updated_at
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,NOW(),NOW())
+    ON CONFLICT (user_id, provider)
+    DO UPDATE SET
+      status = EXCLUDED.status,
+      stripe_customer_id = COALESCE(EXCLUDED.stripe_customer_id, user_subscriptions.stripe_customer_id),
+      stripe_subscription_id = COALESCE(EXCLUDED.stripe_subscription_id, user_subscriptions.stripe_subscription_id),
+      stripe_price_id = COALESCE(EXCLUDED.stripe_price_id, user_subscriptions.stripe_price_id),
+      current_period_end = COALESCE(EXCLUDED.current_period_end, user_subscriptions.current_period_end),
+      cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+      metadata = EXCLUDED.metadata,
+      updated_at = NOW()
+    RETURNING
+      user_id,
+      provider,
+      status,
+      stripe_customer_id,
+      stripe_subscription_id,
+      stripe_price_id,
+      current_period_end,
+      cancel_at_period_end,
+      metadata,
+      created_at,
+      updated_at
+    `,
+    [
+      record.user_id,
+      record.provider,
+      record.status,
+      record.stripe_customer_id || null,
+      record.stripe_subscription_id || null,
+      record.stripe_price_id || null,
+      toIsoOrNull(record.current_period_end),
+      Boolean(record.cancel_at_period_end),
+      JSON.stringify(record.metadata || {}),
+    ],
+  );
+
+  return result.rows[0] || null;
+}
+
+async function getUserSubscription(userId, provider = 'stripe') {
+  const db = getPool();
+  const result = await db.query(
+    `
+    SELECT
+      user_id,
+      provider,
+      status,
+      stripe_customer_id,
+      stripe_subscription_id,
+      stripe_price_id,
+      current_period_end,
+      cancel_at_period_end,
+      metadata,
+      created_at,
+      updated_at
+    FROM user_subscriptions
+    WHERE user_id = $1 AND provider = $2
+    LIMIT 1
+    `,
+    [userId, provider],
+  );
+  return result.rows[0] || null;
+}
+
 async function closeDatabase() {
   if (retentionTimer) {
     clearInterval(retentionTimer);
@@ -475,10 +626,14 @@ module.exports = {
   getUsageRequests,
   getUsageSummary,
   getUsageTrend,
+  getUserSubscription,
+  hashPaymentPayload,
   initDatabase,
   isDatabaseConfigured,
   logUsageEvent,
   normalizeRange,
   purgeOldUsage,
+  recordPaymentEvent,
   startRetentionPurgeScheduler,
+  upsertUserSubscription,
 };
