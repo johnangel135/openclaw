@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.19 - 2026-03-24
+
+- Refine auth UX to dedicated login/signup mode switch (bdcd354)
+
 ## v1.0.18 - 2026-03-24
 
 - Implement Stripe subscription persistence, entitlements, and billing portal (1dfae8f)
