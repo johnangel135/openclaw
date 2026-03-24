@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.21 - 2026-03-24
+
+- Revamp homepage features with demo gallery and subscription marketing (7fbd412)
+
 ## v1.0.20 - 2026-03-24
 
 - Add dedicated auth routes and single-flow auth experience (b875d5c)
