@@ -59,6 +59,10 @@
     .intro ul{margin:1rem 0 0 1.2rem;color:var(--muted);line-height:1.7;font-size:.94rem}
 
     .forms { padding:1.2rem; display:grid; gap:.9rem; align-content:start; }
+    .switcher{display:flex;gap:.45rem;background:#f4fbf6;border:1px solid #d6eadf;border-radius:12px;padding:.35rem}
+    .switcher button{margin:0;padding:.55rem .8rem;border-radius:10px;background:transparent;color:var(--bark);font-weight:600}
+    .switcher button[aria-selected="true"]{background:var(--forest);color:#fff}
+    .panel-form[hidden]{display:none}
     .box{border:1px solid #d6eadf; border-radius:14px; padding:1rem; background:#fff}
     .box h2{font-family:'Playfair Display',serif;color:var(--bark);margin-bottom:.2rem;font-size:1.25rem}
     .muted{color:var(--muted);font-size:.88rem}
@@ -113,25 +117,34 @@
       </section>
 
       <section class="forms" aria-label="Authentication forms">
-        <form class="box" id="signupForm">
-          <h2>Sign up</h2>
-          <div class="muted">New to OpenClaw? Start here.</div>
-          <label for="suEmail">Email</label>
-          <input id="suEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
-          <label for="suPass">Password</label>
-          <input id="suPass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required />
-          <button id="signupBtn" type="submit">Create account</button>
-        </form>
+        <div class="switcher" role="tablist" aria-label="Choose authentication mode">
+          <button id="tabLogin" type="button" role="tab" aria-selected="true" aria-controls="loginPanel">Login</button>
+          <button id="tabSignup" type="button" role="tab" aria-selected="false" aria-controls="signupPanel">Sign up</button>
+        </div>
 
-        <form class="box" id="loginForm">
-          <h2>Login</h2>
-          <div class="muted">Already have an account? Welcome back.</div>
-          <label for="liEmail">Email</label>
-          <input id="liEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
-          <label for="liPass">Password</label>
-          <input id="liPass" name="password" type="password" autocomplete="current-password" placeholder="Your password" required />
-          <button id="loginBtn" type="submit">Login</button>
-        </form>
+        <div id="loginPanel" class="panel-form" role="tabpanel" aria-labelledby="tabLogin">
+          <form class="box" id="loginForm">
+            <h2>Login</h2>
+            <div class="muted">Already have an account? Welcome back.</div>
+            <label for="liEmail">Email</label>
+            <input id="liEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
+            <label for="liPass">Password</label>
+            <input id="liPass" name="password" type="password" autocomplete="current-password" placeholder="Your password" required />
+            <button id="loginBtn" type="submit">Login</button>
+          </form>
+        </div>
+
+        <div id="signupPanel" class="panel-form" role="tabpanel" aria-labelledby="tabSignup" hidden>
+          <form class="box" id="signupForm">
+            <h2>Sign up</h2>
+            <div class="muted">New to OpenClaw? Start here.</div>
+            <label for="suEmail">Email</label>
+            <input id="suEmail" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
+            <label for="suPass">Password</label>
+            <input id="suPass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required />
+            <button id="signupBtn" type="submit">Create account</button>
+          </form>
+        </div>
 
         <div id="status" role="status" aria-live="polite"></div>
       </section>
@@ -142,6 +155,10 @@
     const statusEl = document.getElementById('status');
     const signupBtn = document.getElementById('signupBtn');
     const loginBtn = document.getElementById('loginBtn');
+    const tabLogin = document.getElementById('tabLogin');
+    const tabSignup = document.getElementById('tabSignup');
+    const loginPanel = document.getElementById('loginPanel');
+    const signupPanel = document.getElementById('signupPanel');
 
     function setStatus(msg, kind = 'ok') {
       statusEl.className = kind === 'error' ? 'status-error' : 'status-ok';
@@ -164,6 +181,16 @@
         throw new Error(data?.error?.message || 'Request failed');
       }
       return data;
+    }
+
+    function setMode(mode) {
+      const isLogin = mode !== 'signup';
+      tabLogin.setAttribute('aria-selected', String(isLogin));
+      tabSignup.setAttribute('aria-selected', String(!isLogin));
+      loginPanel.hidden = !isLogin;
+      signupPanel.hidden = isLogin;
+      history.replaceState(null, '', isLogin ? '/auth?mode=login' : '/auth?mode=signup');
+      setStatus('');
     }
 
     async function signup(event) {
@@ -210,6 +237,11 @@
 
     document.getElementById('signupForm').addEventListener('submit', signup);
     document.getElementById('loginForm').addEventListener('submit', login);
+    tabLogin.addEventListener('click', () => setMode('login'));
+    tabSignup.addEventListener('click', () => setMode('signup'));
+
+    const mode = new URLSearchParams(location.search).get('mode');
+    setMode(mode === 'signup' ? 'signup' : 'login');
   </script>
 </body>
 </html>
