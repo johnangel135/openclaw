@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.20 - 2026-03-24
+
+- Add dedicated auth routes and single-flow auth experience (b875d5c)
+
 ## v1.0.19 - 2026-03-24
 
 - Refine auth UX to dedicated login/signup mode switch (bdcd354)
