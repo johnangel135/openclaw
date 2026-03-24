@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.12 - 2026-03-24
+
+- Add auth throttling, CSRF checks, and secure cookies (247019c)
+- Harden admin token handling (no query token) (e5150af)
+
 ## v1.0.11 - 2026-03-23
 
 - fix(mobile): show console button in navbar on small screens (ecc1f97)
