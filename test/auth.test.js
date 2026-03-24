@@ -46,7 +46,7 @@ test('requireAdminToken returns 401 when token is invalid', async () => {
   assert.equal(response.body.error.code, 'unauthorized');
 });
 
-test('requireAdminToken accepts x-admin-token, bearer token, and query token', async () => {
+test('requireAdminToken accepts x-admin-token and bearer token', async () => {
   const { requireAdminToken } = loadAuthWithToken('secret-token');
   const app = makeApp(requireAdminToken);
 
@@ -55,7 +55,13 @@ test('requireAdminToken accepts x-admin-token, bearer token, and query token', a
 
   const bearerResponse = await request(app).get('/protected').set('authorization', 'Bearer secret-token');
   assert.equal(bearerResponse.status, 200);
+});
+
+test('requireAdminToken rejects token in query string', async () => {
+  const { requireAdminToken } = loadAuthWithToken('secret-token');
+  const app = makeApp(requireAdminToken);
 
   const queryResponse = await request(app).get('/protected?token=secret-token');
-  assert.equal(queryResponse.status, 200);
+  assert.equal(queryResponse.status, 401);
+  assert.equal(queryResponse.body.error.code, 'unauthorized');
 });

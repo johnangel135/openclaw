@@ -13,10 +13,6 @@ function extractAdminToken(req) {
     return authorization.slice(7).trim();
   }
 
-  if (typeof req.query.token === 'string' && req.query.token.length > 0) {
-    return req.query.token;
-  }
-
   return '';
 }
 
