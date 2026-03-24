@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.13 - 2026-03-24
+
+- Add allowlists, key encryption, and stricter DB TLS defaults (652dcc0)
+
 ## v1.0.12 - 2026-03-24
 
 - Add auth throttling, CSRF checks, and secure cookies (247019c)
