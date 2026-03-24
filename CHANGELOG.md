@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.31 - 2026-03-24
+
+- Apply remaining team fixes: dynamic plans, mobile nav, and plan-aware funnel (4ca0697)
+
 ## v1.0.30 - 2026-03-24
 
 - Add sticky mobile action bar for console controls (a197840)
