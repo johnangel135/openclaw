@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.28 - 2026-03-24
+
+- Implement P0/P1 UX fixes: plan alignment, billing panel, CTA and auth a11y (064ff1a)
+- Refine onboarding and trust-focused product copy across web flows (2dc84ba)
+- test: add critical auth/payments flow QA coverage (9e72417)
+
 ## v1.0.27 - 2026-03-24
 
 - Apply accessibility pass: contrast, focus states, skip links, reduced motion (7d45967)
