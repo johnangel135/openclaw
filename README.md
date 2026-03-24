@@ -25,7 +25,7 @@ OpenClaw is a lightweight Express.js web application featuring:
 - **LLM proxy endpoints** — `/v1/chat/completions`, `/v1/responses`, `/api/llm/infer`
 - **Postgres usage persistence** — stores request-level usage with 90-day default retention
 - **Optional Redis production mode** — shared session store + distributed rate limiting with automatic in-memory fallback
-- **Payments readiness baseline** — Stripe-ready scaffolding with safe checkout/webhook stubs
+- **Stripe subscriptions** — checkout, webhook processing, subscription persistence, entitlements, billing portal
 
 ## Quick Start
 
@@ -66,7 +66,7 @@ Then open:
 - `GET /api/usage/summary` (with `x-admin-token`)
 - `POST /api/llm/infer` (with `x-admin-token`)
 
-### Payments Readiness Setup
+### Payments Setup (Stripe)
 
 Set payment env vars (test keys first):
 
@@ -75,6 +75,7 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_STARTER=price_...
 STRIPE_PRICE_PRO=price_...
+STRIPE_BILLING_PORTAL_RETURN_URL=https://your-app.example.com/billing
 ```
 
 Available payment endpoints:
@@ -83,8 +84,10 @@ Available payment endpoints:
 - `GET /api/payments/plans`
 - `POST /api/user/payments/checkout-session` (requires login + same-origin)
 - `POST /api/payments/webhook/stripe`
+- `GET /api/user/subscription` (requires login)
+- `POST /api/user/payments/billing-portal` (requires login + same-origin)
 
-See `PAYMENTS.md` for threat model notes and implementation details.
+See `PAYMENTS.md` for details and security notes.
 
 ## Project Structure
 

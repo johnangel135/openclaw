@@ -265,7 +265,9 @@ function deriveSubscriptionRecordFromStripeObject(stripeObject, fallback = {}) {
   };
 }
 
-async function processStripeWebhookEvent(event) {
+async function processStripeWebhookEvent(event, deps = {}) {
+  const recordEvent = deps.recordPaymentEvent || recordPaymentEvent;
+  const upsertSubscription = deps.upsertUserSubscription || upsertUserSubscription;
   const eventId = String(event?.id || '').trim();
   const eventType = String(event?.type || '').trim();
 
@@ -281,7 +283,7 @@ async function processStripeWebhookEvent(event) {
     };
   }
 
-  const recorded = await recordPaymentEvent({
+  const recorded = await recordEvent({
     provider: 'stripe',
     eventId,
     eventType,
@@ -312,7 +314,7 @@ async function processStripeWebhookEvent(event) {
     const stripePriceId = object?.metadata?.plan_id || null;
 
     if (userId) {
-      await upsertUserSubscription({
+      await upsertSubscription({
         user_id: userId,
         provider: 'stripe',
         status: 'active',
@@ -351,7 +353,7 @@ async function processStripeWebhookEvent(event) {
     }
 
     if (record.user_id) {
-      await upsertUserSubscription(record);
+      await upsertSubscription(record);
     }
 
     return {
@@ -396,12 +398,14 @@ function toEntitlement(subscription) {
   };
 }
 
-async function getUserEntitlement(userId) {
-  const subscription = await getUserSubscription(userId, 'stripe');
+async function getUserEntitlement(userId, deps = {}) {
+  const loadSubscription = deps.getUserSubscription || getUserSubscription;
+  const subscription = await loadSubscription(userId, 'stripe');
   return toEntitlement(subscription);
 }
 
-async function createStripeBillingPortalSession({ userId, origin }) {
+async function createStripeBillingPortalSession({ userId, origin }, deps = {}) {
+  const loadSubscription = deps.getUserSubscription || getUserSubscription;
   const fallbackOrigin = origin || 'http://localhost:3000';
   const returnUrl = STRIPE_BILLING_PORTAL_RETURN_URL || `${fallbackOrigin}/billing`;
 
@@ -432,7 +436,7 @@ async function createStripeBillingPortalSession({ userId, origin }) {
     };
   }
 
-  const subscription = await getUserSubscription(userId, 'stripe');
+  const subscription = await loadSubscription(userId, 'stripe');
   const customerId = subscription?.stripe_customer_id || null;
   if (!customerId) {
     return {
