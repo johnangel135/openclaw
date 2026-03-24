@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.30 - 2026-03-24
+
+- Add sticky mobile action bar for console controls (a197840)
+
 ## v1.0.29 - 2026-03-24
 
 - Complete P2 UX pass: mobile nav, responsive request table, key-save feedback (3002372)
