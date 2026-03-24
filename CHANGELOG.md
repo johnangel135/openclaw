@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.16 - 2026-03-24
+
+- security: clamp usage request limits and document hardening envs (36b58a5)
+- feat(payments): add Stripe readiness baseline with safe stubs and tests (7e166f3)
+- Improve auth/console UX states and route coverage tests (7fa8b45)
+
 ## v1.0.15 - 2026-03-24
 
 - Honor forwarded host/proto in CSRF same-origin checks (b2e9861)
