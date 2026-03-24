@@ -58,3 +58,14 @@ test('plaintext compatibility remains when encryption key is absent', () => {
   assert.equal(stored, 'plain-token');
   assert.equal(decryptSecret(stored), 'plain-token');
 });
+
+test('usage request pagination limit is clamped to safe max', () => {
+  process.env.USAGE_REQUESTS_MAX_LIMIT = '50';
+  delete require.cache[require.resolve('../src/config')];
+  delete require.cache[require.resolve('../src/app')];
+
+  const { parseLimit } = require('../src/app');
+  assert.equal(parseLimit('500', 20), 50);
+  assert.equal(parseLimit('-1', 20), 1);
+  assert.equal(parseLimit('nope', 20), 20);
+});

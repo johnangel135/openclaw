@@ -49,6 +49,7 @@ const {
   PROXY_UPSTREAM_TIMEOUT_MS,
   SECURITY_HEADERS_ENABLED,
   TRUST_PROXY,
+  USAGE_REQUESTS_MAX_LIMIT,
 } = require('./config');
 const { hashIdentifier, logSecurityEvent } = require('./security-log');
 
@@ -107,7 +108,7 @@ function parseLimit(limitRaw, fallback) {
   if (!Number.isFinite(parsed)) {
     return fallback;
   }
-  return parsed;
+  return Math.min(Math.max(parsed, 1), USAGE_REQUESTS_MAX_LIMIT);
 }
 
 function getRequestOrigin(req) {
@@ -658,5 +659,6 @@ function createApp() {
 module.exports = {
   createApp,
   getHealthData,
+  parseLimit,
   runProxyAndTrack,
 };
