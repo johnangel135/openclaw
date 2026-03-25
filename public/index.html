@@ -127,6 +127,17 @@
       padding: 0.4rem 0.8rem;
     }
 
+    .nav-menu-btn {
+      display: none;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--bark);
+      background: #fff;
+      border: 1px solid var(--mint);
+      border-radius: 10px;
+      padding: 0.4rem 0.7rem;
+    }
+
     /* ── Hero ────────────────────────────────────────────────── */
     .hero {
       position: relative;
@@ -519,7 +530,21 @@
 
     @media (max-width: 640px) {
       nav { padding: 1rem 1.25rem; }
-      .nav-links { display: none; }
+      .nav-menu-btn { display: inline-flex; align-items: center; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 3.25rem;
+        right: 1rem;
+        background: #fff;
+        border: 1px solid var(--mint);
+        border-radius: 10px;
+        padding: 0.55rem;
+        flex-direction: column;
+        gap: 0.6rem;
+        box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+      }
+      .nav-links.open { display: flex; }
       .nav-console-mobile { display: inline-flex; align-items: center; }
     }
   </style>
@@ -569,7 +594,8 @@
   <!-- Nav -->
   <nav>
     <a class="nav-logo" href="/">Open<span>Claw</span></a>
-    <ul class="nav-links">
+    <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-expanded="false" aria-controls="mainNavLinks">Menu</button>
+    <ul id="mainNavLinks" class="nav-links">
       <li><a href="#features">Features</a></li>
       <li><a href="#subscriptions">Subscriptions</a></li>
       <li><a href="/health">Health</a></li>
@@ -694,37 +720,8 @@
 
     <div class="plans-wrap" id="subscriptions">
       <h3 class="plans-title">Subscription plans (monthly billing)</h3>
-      <div class="plans-grid">
-        <article class="plan-card">
-          <div class="plan-name">Starter</div>
-          <div class="plan-price">$19/month</div>
-          <ul>
-            <li>Up to 50k monthly tracked proxy tokens</li>
-            <li>Personal analytics dashboard</li>
-            <li>Core support and updates</li>
-          </ul>
-          <a class="btn btn-ghost" href="/auth/signup">Start Starter</a>
-        </article>
-        <article class="plan-card pro">
-          <div class="plan-name">Pro</div>
-          <div class="plan-price">$79/month</div>
-          <ul>
-            <li>Up to 500k monthly tracked proxy tokens</li>
-            <li>Priority support</li>
-            <li>Expanded analytics windows</li>
-          </ul>
-          <a class="btn btn-primary" href="/auth/signup">Upgrade to Pro</a>
-        </article>
-        <article class="plan-card">
-          <div class="plan-name">Enterprise</div>
-          <div class="plan-price">$99/month</div>
-          <ul>
-            <li>Unlimited access</li>
-            <li>Security/compliance collaboration</li>
-            <li>Dedicated onboarding + roadmap support</li>
-          </ul>
-          <a class="btn btn-ghost" href="/auth/signup">Get Enterprise</a>
-        </article>
+      <div id="plansGrid" class="plans-grid" aria-live="polite">
+        <article class="plan-card"><div class="plan-name">Loading plans…</div></article>
       </div>
       <p class="plans-note">Provider API usage charges are billed separately by your AI provider.</p>
     </div>
@@ -744,5 +741,51 @@
     <p>Built with 🌿 by <a href="https://github.com/johnangel135">johnangel135</a> · MIT License</p>
   </footer>
 
+  <script>
+    (function () {
+      const menuBtn = document.getElementById('navMenuBtn');
+      const navLinks = document.getElementById('mainNavLinks');
+      if (menuBtn && navLinks) {
+        menuBtn.addEventListener('click', () => {
+          const open = navLinks.classList.toggle('open');
+          menuBtn.setAttribute('aria-expanded', String(open));
+        });
+      }
+
+      const defaults = [
+        { id: 'starter', name: 'Starter', unit_amount: 1900, interval: 'month', features: ['Up to 50k monthly tracked proxy tokens', 'Personal analytics dashboard', 'Core support and updates'] },
+        { id: 'pro', name: 'Pro', unit_amount: 7900, interval: 'month', features: ['Up to 500k monthly tracked proxy tokens', 'Priority support', 'Expanded analytics windows'] },
+        { id: 'enterprise', name: 'Enterprise', unit_amount: 9900, interval: 'month', features: ['Unlimited access', 'Security/compliance collaboration', 'Dedicated onboarding + roadmap support'] },
+      ];
+
+      function money(cents) {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format((cents || 0) / 100);
+      }
+
+      function renderPlans(plans) {
+        const host = document.getElementById('plansGrid');
+        if (!host) return;
+        const rows = Array.isArray(plans) && plans.length ? plans : defaults;
+        host.innerHTML = '';
+        rows.forEach((plan) => {
+          const card = document.createElement('article');
+          card.className = `plan-card ${plan.id === 'pro' ? 'pro' : ''}`;
+          const ctaText = plan.id === 'pro' ? 'Upgrade to Pro' : plan.id === 'enterprise' ? 'Get Enterprise' : 'Start Starter';
+          card.innerHTML = `
+            <div class="plan-name">${plan.name || plan.id}</div>
+            <div class="plan-price">${money(plan.unit_amount)}${plan.interval ? '/' + plan.interval : ''}</div>
+            <ul>${(plan.features || []).map((f) => `<li>${f}</li>`).join('')}</ul>
+            <a class="btn ${plan.id === 'pro' ? 'btn-primary' : 'btn-ghost'}" href="/auth/signup?plan=${encodeURIComponent(plan.id || '')}">${ctaText}</a>
+          `;
+          host.appendChild(card);
+        });
+      }
+
+      fetch('/api/payments/plans')
+        .then((r) => r.ok ? r.json() : Promise.reject(new Error('plans')))
+        .then((d) => renderPlans(d.plans))
+        .catch(() => renderPlans(defaults));
+    })();
+  </script>
 </body>
 </html>

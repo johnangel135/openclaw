@@ -518,6 +518,8 @@
       box.textContent = message;
     }
 
+    const requestedPlan = new URLSearchParams(location.search).get('plan');
+
     function setSubscriptionState(message) {
       const el = document.getElementById('subscriptionState');
       el.textContent = message;
@@ -713,7 +715,11 @@
         const ent = data.entitlement || {};
         const plan = ent.plan_id || 'none';
         const active = ent.active ? 'active' : 'inactive';
-        setSubscriptionState(`Current plan: ${plan} (${active}).`);
+        if (requestedPlan && requestedPlan !== plan) {
+          setSubscriptionState(`Current plan: ${plan} (${active}). You selected ${requestedPlan} — click the matching upgrade button below to continue.`);
+        } else {
+          setSubscriptionState(`Current plan: ${plan} (${active}).`);
+        }
       } catch (error) {
         setSubscriptionState(`Subscription unavailable: ${error.message}`);
       }

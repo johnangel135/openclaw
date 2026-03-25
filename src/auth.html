@@ -233,6 +233,12 @@
       }
     }
 
+    const nextPlan = new URLSearchParams(location.search).get('plan');
+
+    function consoleTarget() {
+      return nextPlan ? `/console?plan=${encodeURIComponent(nextPlan)}` : '/console';
+    }
+
     async function signup(event) {
       event.preventDefault();
       clearFieldErrors();
@@ -259,7 +265,7 @@
       try {
         await postJson('/auth/signup', { email, password });
         setStatus('Account created. Redirecting to console…');
-        setTimeout(() => { location.href = '/console'; }, 450);
+        setTimeout(() => { location.href = consoleTarget(); }, 450);
       } catch (error) {
         setStatus(error.message || 'Signup failed', 'error');
       } finally {
@@ -290,7 +296,7 @@
       try {
         await postJson('/auth/login', { email, password });
         setStatus('Login successful. Redirecting…');
-        setTimeout(() => { location.href = '/console'; }, 300);
+        setTimeout(() => { location.href = consoleTarget(); }, 300);
       } catch (error) {
         setStatus(error.message || 'Login failed', 'error');
       } finally {
