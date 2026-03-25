@@ -37,19 +37,25 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trigger Render redeploy (all planes)
+      - name: Trigger Render redeploy (frontend/control/data)
         env:
-          RENDER_DEPLOY_HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
-          RENDER_DEPLOY_HOOK_CONTROL: ${{ secrets.RENDER_DEPLOY_HOOK_CONTROL }}
-          RENDER_DEPLOY_HOOK_DATA: ${{ secrets.RENDER_DEPLOY_HOOK_DATA }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_FRONTEND_SERVICE_ID: srv-d720r7paae7s73frcoj0
+          RENDER_CONTROL_SERVICE_ID: srv-d720r4aa214c73dkj35g
+          RENDER_DATA_SERVICE_ID: srv-d720r18ule4c7385io30
         run: |
-          for name in RENDER_DEPLOY_HOOK_FRONTEND RENDER_DEPLOY_HOOK_CONTROL RENDER_DEPLOY_HOOK_DATA; do
-            if [ -z "${!name}" ]; then
-              echo "Missing required secret: $name"
-              exit 1
-            fi
-          done
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "Missing required secret: RENDER_API_KEY"
+            exit 1
+          fi
 
-          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_FRONTEND"
-          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_CONTROL"
-          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_DATA"
+          for SID in "$RENDER_FRONTEND_SERVICE_ID" "$RENDER_CONTROL_SERVICE_ID" "$RENDER_DATA_SERVICE_ID"; do
+            echo "Trigger deploy for $SID"
+            curl --fail --silent --show-error \
+              --request POST \
+              --url "https://api.render.com/v1/services/$SID/deploys" \
+              --header "Accept: application/json" \
+              --header "Authorization: Bearer $RENDER_API_KEY" \
+              --header "Content-Type: application/json" \
+              --data '{"clearCache":"do_not_clear"}'
+          done
