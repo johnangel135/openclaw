@@ -217,3 +217,14 @@ test('unknown API routes return JSON 404 instead of SPA html', async () => {
   assert.equal(response.body.error.code, 'not_found');
 });
 
+test('usage requests endpoint rejects invalid cursor values early', async () => {
+  const { app } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+
+  const response = await request(app)
+    .get('/api/usage/requests?cursor=abc')
+    .set('x-admin-token', 'secret-token');
+
+  assert.equal(response.status, 400);
+  assert.equal(response.body.error.code, 'invalid_cursor');
+});
+

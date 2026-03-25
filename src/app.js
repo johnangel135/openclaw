@@ -116,6 +116,19 @@ function parseLimit(limitRaw, fallback) {
   return Math.min(Math.max(parsed, 1), USAGE_REQUESTS_MAX_LIMIT);
 }
 
+function parseCursor(cursorRaw) {
+  if (cursorRaw === undefined || cursorRaw === null || cursorRaw === '') {
+    return { ok: true, value: null };
+  }
+
+  const value = String(cursorRaw).trim();
+  if (!/^\d+$/.test(value)) {
+    return { ok: false, value: null };
+  }
+
+  return { ok: true, value };
+}
+
 function setPublicPageCache(res) {
   res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
 }
@@ -609,12 +622,23 @@ async function createApp() {
   }));
 
   app.get('/api/usage/requests', asyncHandler(async (req, res) => {
+    const cursor = parseCursor(req.query.cursor);
+    if (!cursor.ok) {
+      res.status(400).json({
+        error: {
+          message: 'Invalid cursor',
+          code: 'invalid_cursor',
+        },
+      });
+      return;
+    }
+
     if (!requireDatabase(res)) {
       return;
     }
 
     const limit = parseLimit(req.query.limit, 20);
-    const data = await getUsageRequests(req.query.from, req.query.to, limit, req.query.cursor);
+    const data = await getUsageRequests(req.query.from, req.query.to, limit, cursor.value);
     res.json(data);
   }));
 
@@ -653,11 +677,22 @@ async function createApp() {
   }));
 
   app.get('/api/user/usage/requests', asyncHandler(async (req, res) => {
+    const cursor = parseCursor(req.query.cursor);
+    if (!cursor.ok) {
+      res.status(400).json({
+        error: {
+          message: 'Invalid cursor',
+          code: 'invalid_cursor',
+        },
+      });
+      return;
+    }
+
     if (!requireDatabase(res)) {
       return;
     }
     const limit = parseLimit(req.query.limit, 20);
-    const data = await getUsageRequests(req.query.from, req.query.to, limit, req.query.cursor, req.user.id);
+    const data = await getUsageRequests(req.query.from, req.query.to, limit, cursor.value, req.user.id);
     res.json(data);
   }));
 
