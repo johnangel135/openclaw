@@ -366,7 +366,7 @@
     <a class="nav-logo" href="/">Open<span>Claw</span></a>
     <ul class="nav-links">
       <li><a href="/">Home</a></li>
-      <li><a href="https://openclaw-control-plane.onrender.com/health.json">Health JSON</a></li>
+      <li><a href="/health.json">Health JSON</a></li>
       <li><a href="https://github.com/johnangel135/openclaw" target="_blank" rel="noopener">GitHub</a></li>
     </ul>
   </nav>
@@ -383,7 +383,7 @@
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#health-grid">View Metrics</a>
-        <a class="btn btn-ghost" href="https://openclaw-control-plane.onrender.com/health.json">Raw JSON</a>
+        <a class="btn btn-ghost" href="/health.json">Raw JSON</a>
       </div>
     </div>
   </section>
@@ -422,7 +422,7 @@
   </section>
 
   <footer>
-    OpenClaw health dashboard. For machine-readable output, use <a href="https://openclaw-control-plane.onrender.com/health.json">control-plane /health.json</a>.
+    OpenClaw health dashboard. For machine-readable output, use <a href="/health.json">/health.json</a>.
   </footer>
 
   <script>
@@ -437,7 +437,7 @@
       return `${dayText}${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
     }
 
-    const API_BASE_URL = 'https://openclaw-control-plane.onrender.com';
+    const API_BASE_URL = '';
 
     async function refreshHealth() {
       const heroStatus = document.getElementById('heroStatus');
