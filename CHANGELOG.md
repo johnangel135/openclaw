@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.41 - 2026-03-25
+
+- Managed launch baseline: internal data-plane auth, hosted pricing alignment, checkout UX pages (463de31)
+
 ## v1.0.40 - 2026-03-25
 
 - Polish mobile nav: animation, click-outside close, active link highlight (62e4f52)
