@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.42 - 2026-03-25
+
+- Add managed billing sync pipeline and internal trigger endpoint (27a083e)
+
 ## v1.0.41 - 2026-03-25
 
 - Managed launch baseline: internal data-plane auth, hosted pricing alignment, checkout UX pages (463de31)
