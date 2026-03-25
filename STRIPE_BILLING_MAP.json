@@ -1,0 +1,71 @@
+{
+  "products": [
+    {
+      "key": "openclaw-starter-byok",
+      "name": "OpenClaw Starter (BYOK)",
+      "prices": [
+        {
+          "lookup_key": "starter_monthly_usd",
+          "type": "recurring",
+          "unit_amount": 2900,
+          "currency": "usd",
+          "interval": "month"
+        }
+      ]
+    },
+    {
+      "key": "openclaw-pro-managed",
+      "name": "OpenClaw Pro (Managed)",
+      "prices": [
+        {
+          "lookup_key": "pro_monthly_usd",
+          "type": "recurring",
+          "unit_amount": 14900,
+          "currency": "usd",
+          "interval": "month"
+        },
+        {
+          "lookup_key": "managed_input_tokens_million_usd",
+          "type": "metered",
+          "billing_scheme": "per_unit",
+          "unit_amount": 1200,
+          "currency": "usd",
+          "unit_label": "1M input tokens"
+        },
+        {
+          "lookup_key": "managed_output_tokens_million_usd",
+          "type": "metered",
+          "billing_scheme": "per_unit",
+          "unit_amount": 2400,
+          "currency": "usd",
+          "unit_label": "1M output tokens"
+        }
+      ]
+    },
+    {
+      "key": "openclaw-scale-managed",
+      "name": "OpenClaw Scale (Managed)",
+      "prices": [
+        {
+          "lookup_key": "scale_monthly_usd",
+          "type": "recurring",
+          "unit_amount": 49900,
+          "currency": "usd",
+          "interval": "month"
+        }
+      ]
+    }
+  ],
+  "included_usage": {
+    "starter": {
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    "pro": {
+      "blended_tokens": 10000000
+    },
+    "scale": {
+      "blended_tokens": 60000000
+    }
+  }
+}

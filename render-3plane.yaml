@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: openclaw-control-plane
+    runtime: node
+    plan: free
+    region: oregon
+    autoDeploy: true
+    buildCommand: npm ci
+    startCommand: npm run start:control-plane
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: USER_KEYS_ENCRYPTION_KEY
+        sync: false
+      - key: CONSOLE_ADMIN_TOKEN
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: openclaw-data-plane
+    runtime: node
+    plan: free
+    region: oregon
+    autoDeploy: true
+    buildCommand: npm ci
+    startCommand: npm run start:data-plane
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: CONTROL_PLANE_URL
+        sync: false
+
+  - type: static
+    name: openclaw-frontend
+    rootDir: .
+    buildCommand: ""
+    staticPublishPath: public
+    pullRequestPreviewsEnabled: false

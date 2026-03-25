@@ -8,8 +8,10 @@
   },
   "scripts": {
     "start": "node src/index.js",
+    "start:control-plane": "node src/index.js",
+    "start:data-plane": "node services/data-plane/index.js",
     "dev": "node --watch src/index.js",
-    "lint": "eslint src/**/*.js",
+    "lint": "eslint src/**/*.js services/**/*.js",
     "test": "node --test"
   },
   "dependencies": {
