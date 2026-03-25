@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.38 - 2026-03-25
+
+- Simplify CD to Render API deploys with single RENDER_API_KEY secret (30dd787)
+- fix: make health page same-origin and add regression test (8a8e3a8)
+
 ## v1.0.37 - 2026-03-25
 
 - Add static redirect pages for /login and /signup on frontend (aed844f)
