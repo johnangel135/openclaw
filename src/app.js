@@ -44,6 +44,7 @@ const {
   getPaymentReadiness,
   getUserEntitlement,
   processStripeWebhookEvent,
+  syncManagedUsageToStripe,
   verifyStripeWebhookSignature,
 } = require('./payments');
 const { getPricingPlans } = require('./pricing-plans');
@@ -692,6 +693,20 @@ async function createApp() {
     const limit = parseLimit(req.query.limit, 20);
     const data = await getUsageRequests(req.query.from, req.query.to, limit, cursor.value);
     res.json(data);
+  }));
+
+  app.post('/api/usage/billing/sync', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const result = await syncManagedUsageToStripe({
+      from: req.body?.from,
+      to: req.body?.to,
+      dryRun: Boolean(req.body?.dry_run),
+    });
+
+    res.status(result.statusCode).json(result.payload);
   }));
 
   app.get('/api/user/usage/summary', asyncHandler(async (req, res) => {

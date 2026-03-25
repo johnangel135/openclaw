@@ -10,8 +10,9 @@
     "start": "node src/index.js",
     "start:control-plane": "node src/index.js",
     "start:data-plane": "node services/data-plane/index.js",
+    "billing:sync-managed-usage": "node scripts/sync-managed-usage.js",
     "dev": "node --watch src/index.js",
-    "lint": "eslint src/**/*.js services/**/*.js",
+    "lint": "eslint src/**/*.js services/**/*.js scripts/**/*.js",
     "test": "node --test"
   },
   "dependencies": {

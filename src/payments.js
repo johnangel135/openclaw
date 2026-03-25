@@ -10,11 +10,15 @@ const {
   STRIPE_CANCEL_URL,
   STRIPE_CHECKOUT_MODE,
   STRIPE_BILLING_PORTAL_RETURN_URL,
+  STRIPE_METER_EVENT_INPUT_NAME,
+  STRIPE_METER_EVENT_OUTPUT_NAME,
 } = require('./config');
 const { getPlanById, getPlanByStripePriceId } = require('./pricing-plans');
 const {
+  getManagedUsageForPeriod,
   getUserSubscription,
   recordPaymentEvent,
+  recordStripeUsageSyncRun,
   upsertUserSubscription,
 } = require('./db');
 
@@ -410,6 +414,129 @@ async function getUserEntitlement(userId, deps = {}) {
   return toEntitlement(subscription);
 }
 
+function meterQuantityForPlan(planId, meterType, rawQuantity) {
+  const quantity = Number(rawQuantity || 0);
+  const includedByPlan = {
+    pro: 10_000_000,
+    scale: 60_000_000,
+  };
+
+  const included = includedByPlan[String(planId || '').toLowerCase()] || 0;
+  if (meterType === 'input') {
+    return Math.max(0, quantity - included);
+  }
+
+  // Output tokens are billed fully as overage baseline for now.
+  return Math.max(0, quantity);
+}
+
+async function sendStripeMeterEvent({
+  eventName,
+  stripeCustomerId,
+  quantity,
+  timestamp,
+  idempotencyKey,
+}) {
+  const body = new URLSearchParams({
+    event_name: eventName,
+    identifier: idempotencyKey,
+    timestamp: String(timestamp),
+    'payload[stripe_customer_id]': stripeCustomerId,
+    'payload[value]': String(quantity),
+  });
+
+  const response = await fetch('https://api.stripe.com/v1/billing/meter_events', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Idempotency-Key': idempotencyKey,
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const stripeBody = await response.text();
+    throw new Error(`stripe_meter_event_failed:${response.status}:${stripeBody}`);
+  }
+}
+
+async function syncManagedUsageToStripe({ from, to, dryRun = false }) {
+  const readiness = getPaymentReadiness();
+  if (!readiness.enabled) {
+    return {
+      statusCode: 503,
+      payload: {
+        error: {
+          message: 'Payments are not fully configured',
+          code: 'payments_not_configured',
+          missing: readiness.missing,
+        },
+      },
+    };
+  }
+
+  const usage = await getManagedUsageForPeriod(from, to);
+  const periodStart = usage.from;
+  const periodEnd = usage.to;
+  const timestamp = Math.floor(new Date(periodEnd).getTime() / 1000);
+
+  const results = [];
+
+  for (const row of usage.rows) {
+    const inputQty = meterQuantityForPlan(row.plan_id, 'input', row.input_tokens);
+    const outputQty = meterQuantityForPlan(row.plan_id, 'output', row.output_tokens);
+
+    for (const meter of [
+      { type: 'input', event: STRIPE_METER_EVENT_INPUT_NAME, qty: inputQty },
+      { type: 'output', event: STRIPE_METER_EVENT_OUTPUT_NAME, qty: outputQty },
+    ]) {
+      if (!meter.qty) {
+        results.push({ user_id: row.user_id, meter: meter.type, quantity: 0, skipped: true });
+        continue;
+      }
+
+      const idempotencyKey = `meter:${row.user_id}:${meter.type}:${periodStart}:${periodEnd}`;
+      const insert = await recordStripeUsageSyncRun({
+        userId: row.user_id,
+        periodStart,
+        periodEnd,
+        meterType: meter.type,
+        quantity: meter.qty,
+        idempotencyKey,
+      });
+
+      if (!insert.inserted) {
+        results.push({ user_id: row.user_id, meter: meter.type, quantity: meter.qty, duplicate: true });
+        continue;
+      }
+
+      if (!dryRun) {
+        await sendStripeMeterEvent({
+          eventName: meter.event,
+          stripeCustomerId: row.stripe_customer_id,
+          quantity: meter.qty,
+          timestamp,
+          idempotencyKey,
+        });
+      }
+
+      results.push({ user_id: row.user_id, meter: meter.type, quantity: meter.qty, sent: !dryRun });
+    }
+  }
+
+  return {
+    statusCode: 200,
+    payload: {
+      ok: true,
+      from: periodStart,
+      to: periodEnd,
+      dry_run: Boolean(dryRun),
+      processed: results,
+    },
+  };
+}
+
 async function createStripeBillingPortalSession({ userId, origin }, deps = {}) {
   const loadSubscription = deps.getUserSubscription || getUserSubscription;
   const fallbackOrigin = origin || 'http://localhost:3000';
@@ -518,6 +645,7 @@ module.exports = {
   isActiveSubscriptionStatus,
   parseStripeSignatureHeader,
   processStripeWebhookEvent,
+  syncManagedUsageToStripe,
   toEntitlement,
   verifyStripeWebhookSignature,
 };

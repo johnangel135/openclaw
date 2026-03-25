@@ -110,6 +110,20 @@ async function initDatabase() {
   await db.query('CREATE INDEX IF NOT EXISTS idx_user_subscriptions_provider_status ON user_subscriptions (provider, status)');
 
   await db.query(`
+    CREATE TABLE IF NOT EXISTS stripe_usage_sync_runs (
+      id BIGSERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      period_start TIMESTAMPTZ NOT NULL,
+      period_end TIMESTAMPTZ NOT NULL,
+      meter_type TEXT NOT NULL,
+      quantity BIGINT NOT NULL DEFAULT 0,
+      idempotency_key TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_stripe_usage_sync_runs_user_period ON stripe_usage_sync_runs (user_id, period_start, period_end)');
+
+  await db.query(`
     CREATE TABLE IF NOT EXISTS payment_events (
       id BIGSERIAL PRIMARY KEY,
       provider TEXT NOT NULL,
@@ -603,6 +617,67 @@ async function getUserSubscription(userId, provider = 'stripe') {
   return result.rows[0] || null;
 }
 
+async function getManagedUsageForPeriod(from, to) {
+  const db = getPool();
+  const range = normalizeRange(from, to);
+
+  const result = await db.query(
+    `
+    SELECT
+      u.user_id,
+      u.stripe_customer_id,
+      COALESCE(u.metadata->>'plan_id', 'pro') AS plan_id,
+      COALESCE(SUM(e.input_tokens), 0)::bigint AS input_tokens,
+      COALESCE(SUM(e.output_tokens), 0)::bigint AS output_tokens
+    FROM user_subscriptions u
+    LEFT JOIN llm_usage_events e
+      ON e.user_id = u.user_id
+     AND e.created_at >= $1
+     AND e.created_at <= $2
+    WHERE u.provider = 'stripe'
+      AND u.status IN ('active', 'trialing')
+      AND COALESCE(u.metadata->>'plan_id', '') IN ('pro', 'scale')
+      AND u.stripe_customer_id IS NOT NULL
+    GROUP BY u.user_id, u.stripe_customer_id, COALESCE(u.metadata->>'plan_id', 'pro')
+    `,
+    [range.from.toISOString(), range.to.toISOString()],
+  );
+
+  return {
+    from: range.from.toISOString(),
+    to: range.to.toISOString(),
+    rows: result.rows.map((row) => ({
+      user_id: row.user_id,
+      stripe_customer_id: row.stripe_customer_id,
+      plan_id: row.plan_id,
+      input_tokens: Number(row.input_tokens || 0),
+      output_tokens: Number(row.output_tokens || 0),
+    })),
+  };
+}
+
+async function recordStripeUsageSyncRun({ userId, periodStart, periodEnd, meterType, quantity, idempotencyKey }) {
+  const db = getPool();
+  const result = await db.query(
+    `
+    INSERT INTO stripe_usage_sync_runs (
+      user_id,
+      period_start,
+      period_end,
+      meter_type,
+      quantity,
+      idempotency_key
+    )
+    VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (idempotency_key) DO NOTHING
+    RETURNING id
+    `,
+    [userId, periodStart, periodEnd, meterType, quantity, idempotencyKey],
+  );
+
+  return { inserted: result.rowCount > 0 };
+}
+
 async function closeDatabase() {
   if (retentionTimer) {
     clearInterval(retentionTimer);
@@ -624,6 +699,7 @@ module.exports = {
   getUsageByModel,
   getUsagePerf,
   getUsageRequests,
+  getManagedUsageForPeriod,
   getUsageSummary,
   getUsageTrend,
   getUserSubscription,
@@ -634,6 +710,7 @@ module.exports = {
   normalizeRange,
   purgeOldUsage,
   recordPaymentEvent,
+  recordStripeUsageSyncRun,
   startRetentionPurgeScheduler,
   upsertUserSubscription,
 };
