@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.39 - 2026-03-25
+
+- Improve mobile menu dropdown styling for cleaner professional nav (25f69ff)
+
 ## v1.0.38 - 2026-03-25
 
 - Simplify CD to Render API deploys with single RENDER_API_KEY secret (30dd787)
