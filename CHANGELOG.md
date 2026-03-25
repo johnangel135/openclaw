@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.36 - 2026-03-25
+
+- Fix 3-plane routing and ops: route order, redirects, health source, multi-service CD/uptime (8064b6f)
+
 ## v1.0.35 - 2026-03-25
 
 - Fix /console and /auth on static frontend with redirect pages (e961eb4)
