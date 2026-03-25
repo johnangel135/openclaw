@@ -349,6 +349,23 @@
       .menu-btn { display: inline-flex; }
       .nav-links { display: none; position: absolute; right: 1rem; top: 3.2rem; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 0.5rem; flex-direction: column; min-width: 130px; }
       .nav-links.open { display: flex; }
+
+      .toolbar {
+        position: sticky;
+        bottom: 0;
+        z-index: 12;
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 -8px 24px rgba(0,0,0,0.12);
+      }
+      .toolbar > div:first-child { display: none; }
+      .toolbar > div:last-child {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .toolbar > div:last-child .muted {
+        display: none;
+      }
+
       table thead { display: none; }
       table, tbody, tr, td { display: block; width: 100%; }
       tr { border-bottom: 1px solid var(--line); padding: 0.55rem 0.35rem; }
