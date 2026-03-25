@@ -181,6 +181,8 @@ async function createStripeCheckoutSession({ userId, planId, customerEmail, orig
       customer_email: customerEmail || '',
       'metadata[user_id]': userId,
       'metadata[plan_id]': plan.id,
+      'subscription_data[metadata][user_id]': userId,
+      'subscription_data[metadata][plan_id]': plan.id,
     });
 
     const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {

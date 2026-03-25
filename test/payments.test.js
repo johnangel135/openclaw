@@ -117,6 +117,8 @@ test('checkout session live mode sends metadata and returns checkout id/url', as
     const params = new URLSearchParams(capturedBody);
     assert.equal(params.get('metadata[user_id]'), 'u-pay-3');
     assert.equal(params.get('metadata[plan_id]'), 'starter');
+    assert.equal(params.get('subscription_data[metadata][user_id]'), 'u-pay-3');
+    assert.equal(params.get('subscription_data[metadata][plan_id]'), 'starter');
   } finally {
     global.fetch = originalFetch;
   }
