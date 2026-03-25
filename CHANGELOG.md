@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.33 - 2026-03-25
+
+- Add 3-plane architecture scaffold (frontend/control-plane/data-plane) and deployment blueprint (4c69a74)
+- Validate usage request cursor before querying (6cd60e8)
+- Align auth docs and normalize entitlement plan ids (9e2668b)
+- Fix usage request limit cap to honor configured max (f8bb48d)
+- Improve console API-key UX with explicit clear actions (fc23b5e)
+
 ## v1.0.32 - 2026-03-25
 
 - Performance: compression, cache headers, system fonts, and free-tier Render blueprint (5a143f8)
