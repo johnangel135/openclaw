@@ -6,6 +6,11 @@ This repo now deploys all 3 Render services from CI using a single secret.
 
 - `RENDER_API_KEY`
 
+## Billing sync workflow secrets (hourly)
+
+- `CONTROL_PLANE_SYNC_URL` (example: `https://openclaw-control-plane.onrender.com/api/usage/billing/sync`)
+- `CONSOLE_ADMIN_TOKEN` (same token used for admin-protected API routes)
+
 ## Where to set it
 
 GitHub repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**

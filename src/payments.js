@@ -445,19 +445,41 @@ async function sendStripeMeterEvent({
     'payload[value]': String(quantity),
   });
 
-  const response = await fetch('https://api.stripe.com/v1/billing/meter_events', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Idempotency-Key': idempotencyKey,
-    },
-    body,
-  });
+  const maxAttempts = 3;
+  let lastError;
 
-  if (!response.ok) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await fetch('https://api.stripe.com/v1/billing/meter_events', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Idempotency-Key': idempotencyKey,
+      },
+      body,
+    });
+
+    if (response.ok) {
+      return;
+    }
+
     const stripeBody = await response.text();
-    throw new Error(`stripe_meter_event_failed:${response.status}:${stripeBody}`);
+    const isRetryable = response.status >= 500 || response.status === 429;
+    lastError = new Error(`stripe_meter_event_failed:${response.status}:${stripeBody}`);
+
+    if (!isRetryable || attempt === maxAttempts) {
+      throw lastError;
+    }
+
+    const retryAfter = Number.parseInt(response.headers.get('retry-after') || '', 10);
+    const backoffMs = Number.isFinite(retryAfter)
+      ? Math.max(250, retryAfter * 1000)
+      : 400 * attempt;
+    await new Promise((resolve) => setTimeout(resolve, backoffMs));
+  }
+
+  if (lastError) {
+    throw lastError;
   }
 }
 

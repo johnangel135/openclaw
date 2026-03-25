@@ -1,0 +1,44 @@
+name: Managed Billing Sync
+
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync managed usage to Stripe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger control-plane billing sync API
+        env:
+          CONTROL_PLANE_SYNC_URL: ${{ secrets.CONTROL_PLANE_SYNC_URL }}
+          CONSOLE_ADMIN_TOKEN: ${{ secrets.CONSOLE_ADMIN_TOKEN }}
+        run: |
+          if [ -z "$CONTROL_PLANE_SYNC_URL" ] || [ -z "$CONSOLE_ADMIN_TOKEN" ]; then
+            echo "Missing required secrets: CONTROL_PLANE_SYNC_URL and/or CONSOLE_ADMIN_TOKEN"
+            exit 1
+          fi
+
+          NOW=$(date -u +"%Y-%m-%dT%H:00:00Z")
+          PREV=$(date -u -d "$NOW -1 hour" +"%Y-%m-%dT%H:00:00Z")
+
+          PAYLOAD=$(printf '{"from":"%s","to":"%s","dry_run":false}' "$PREV" "$NOW")
+
+          echo "Sync window: $PREV -> $NOW"
+
+          RESPONSE_FILE=$(mktemp)
+          HTTP_CODE=$(curl --silent --show-error --location \
+            --write-out "%{http_code}" \
+            --output "$RESPONSE_FILE" \
+            --request POST "$CONTROL_PLANE_SYNC_URL" \
+            --header "Content-Type: application/json" \
+            --header "X-Admin-Token: $CONSOLE_ADMIN_TOKEN" \
+            --data "$PAYLOAD")
+
+          cat "$RESPONSE_FILE"
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Billing sync failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
