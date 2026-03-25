@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.37 - 2026-03-25
+
+- Add static redirect pages for /login and /signup on frontend (aed844f)
+
 ## v1.0.36 - 2026-03-25
 
 - Fix 3-plane routing and ops: route order, redirects, health source, multi-service CD/uptime (8064b6f)
