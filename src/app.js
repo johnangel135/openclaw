@@ -663,6 +663,15 @@ async function createApp() {
     res.sendFile(CONSOLE_FILE);
   }));
 
+  app.get('/api/*', (req, res) => {
+    res.status(404).json({
+      error: {
+        message: 'Not found',
+        code: 'not_found',
+      },
+    });
+  });
+
   // Catch-all: serve index.html.
   app.get('*', (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'index.html'));

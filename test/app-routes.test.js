@@ -167,6 +167,7 @@ test('console route redirects when logged out and serves dashboard when logged i
 
   assert.equal(loggedIn.status, 200);
   assert.match(loggedIn.text, /Your API Keys/);
+  assert.match(loggedIn.text, /Leave a field blank to keep the currently saved key/);
   assert.match(loggedIn.text, /Quick start: add at least one provider API key/);
 });
 
@@ -194,5 +195,16 @@ test('cors allowlist permits configured origin and preflight', async () => {
   assert.equal(preflight.status, 204);
   assert.equal(preflight.headers['access-control-allow-origin'], 'https://console.example.com');
   assert.equal(preflight.headers['access-control-allow-credentials'], 'true');
+});
+
+test('unknown API routes return JSON 404 instead of SPA html', async () => {
+  const { app } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
+
+  const response = await request(app)
+    .get('/api/does-not-exist')
+    .set('x-admin-token', 'secret-token');
+
+  assert.equal(response.status, 404);
+  assert.equal(response.body.error.code, 'not_found');
 });
 
