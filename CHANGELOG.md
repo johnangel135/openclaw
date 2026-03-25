@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.40 - 2026-03-25
+
+- Polish mobile nav: animation, click-outside close, active link highlight (62e4f52)
+
 ## v1.0.39 - 2026-03-25
 
 - Improve mobile menu dropdown styling for cleaner professional nav (25f69ff)
