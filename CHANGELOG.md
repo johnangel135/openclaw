@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.43 - 2026-03-25
+
+- Add hourly managed billing sync workflow with retry-safe meter event sending (916bc7b)
+
 ## v1.0.42 - 2026-03-25
 
 - Add managed billing sync pipeline and internal trigger endpoint (27a083e)
