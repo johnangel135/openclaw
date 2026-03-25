@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.35 - 2026-03-25
+
+- Fix /console and /auth on static frontend with redirect pages (e961eb4)
+
 ## v1.0.34 - 2026-03-25
 
 - Fix static frontend routes: redirect /console and /auth to control plane (a0361ef)
