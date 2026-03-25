@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.32 - 2026-03-25
+
+- Performance: compression, cache headers, system fonts, and free-tier Render blueprint (5a143f8)
+- fix(payments): persist user metadata onto Stripe subscriptions (314af04)
+- Improve API key save UX to avoid accidental key clearing (36aae9f)
+- fix(api): return JSON 404 for unknown API routes (fd5eb31)
+
 ## v1.0.31 - 2026-03-24
 
 - Apply remaining team fixes: dynamic plans, mobile nav, and plan-aware funnel (4ca0697)
