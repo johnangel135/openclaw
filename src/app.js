@@ -306,8 +306,6 @@ async function createApp() {
     },
   }));
 
-  // Serve static files from public directory.
-  app.use(express.static(PUBLIC_DIR));
 
   const authBlockedLogger = (req, retryAfterSeconds) => {
     logSecurityEvent('auth_rate_limited', req, {
@@ -332,11 +330,15 @@ async function createApp() {
   });
 
   app.get('/auth/login', (req, res) => {
-    res.redirect('/auth?mode=login');
+    const query = new URLSearchParams(req.query || {});
+    query.set('mode', 'login');
+    res.redirect(`/auth?${query.toString()}`);
   });
 
   app.get('/auth/signup', (req, res) => {
-    res.redirect('/auth?mode=signup');
+    const query = new URLSearchParams(req.query || {});
+    query.set('mode', 'signup');
+    res.redirect(`/auth?${query.toString()}`);
   });
 
   app.post('/auth/signup', signupThrottle.preflight, asyncHandler(async (req, res) => {
@@ -704,6 +706,9 @@ async function createApp() {
     res.set('Cache-Control', 'no-store');
     res.sendFile(CONSOLE_FILE);
   }));
+
+  // Serve static files from public directory after explicit app routes.
+  app.use(express.static(PUBLIC_DIR));
 
   app.get('/api/*', (req, res) => {
     res.status(404).json({

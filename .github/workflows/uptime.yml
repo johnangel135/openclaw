@@ -7,11 +7,17 @@ on:
 
 jobs:
   healthcheck:
-    name: Check /health
+    name: Check frontend + control + data plane
     runs-on: ubuntu-latest
     steps:
-      - name: Check production health endpoint
-        env:
-          TARGET_URL: https://www.johntruong.it.com/health
+      - name: Check frontend root
         run: |
-          curl --fail --silent --show-error --location --max-time 20 "$TARGET_URL"
+          curl --fail --silent --show-error --location --max-time 20 "https://johntruong.it.com/"
+
+      - name: Check control plane health
+        run: |
+          curl --fail --silent --show-error --location --max-time 20 "https://openclaw-control-plane.onrender.com/health"
+
+      - name: Check data plane health
+        run: |
+          curl --fail --silent --show-error --location --max-time 20 "https://openclaw-data-plane.onrender.com/health"

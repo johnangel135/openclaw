@@ -37,12 +37,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trigger Render redeploy
+      - name: Trigger Render redeploy (all planes)
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RENDER_DEPLOY_HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+          RENDER_DEPLOY_HOOK_CONTROL: ${{ secrets.RENDER_DEPLOY_HOOK_CONTROL }}
+          RENDER_DEPLOY_HOOK_DATA: ${{ secrets.RENDER_DEPLOY_HOOK_DATA }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "Missing required secret: RENDER_DEPLOY_HOOK_URL"
-            exit 1
-          fi
-          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
+          for name in RENDER_DEPLOY_HOOK_FRONTEND RENDER_DEPLOY_HOOK_CONTROL RENDER_DEPLOY_HOOK_DATA; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required secret: $name"
+              exit 1
+            fi
+          done
+
+          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_FRONTEND"
+          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_CONTROL"
+          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_DATA"

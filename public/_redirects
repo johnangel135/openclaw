@@ -1,5 +1,5 @@
 /console https://openclaw-control-plane.onrender.com/console 302
 /auth https://openclaw-control-plane.onrender.com/auth 302
-/login https://openclaw-control-plane.onrender.com/login 302
-/signup https://openclaw-control-plane.onrender.com/signup 302
+/login https://openclaw-control-plane.onrender.com/auth/login 302
+/signup https://openclaw-control-plane.onrender.com/auth/signup 302
 /health https://openclaw-control-plane.onrender.com/health 302
