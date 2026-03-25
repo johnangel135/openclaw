@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const { Pool } = require('pg');
-const { DATABASE_URL, USAGE_RETENTION_DAYS } = require('./config');
+const { DATABASE_URL, USAGE_REQUESTS_MAX_LIMIT, USAGE_RETENTION_DAYS } = require('./config');
 const { getPgSslConfig } = require('./pg-ssl');
 
 let pool;
@@ -396,7 +396,7 @@ async function getUsagePerf(windowName, userId = null) {
 
 async function getUsageRequests(from, to, limit, cursor, userId = null) {
   const db = getPool();
-  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), 100);
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), USAGE_REQUESTS_MAX_LIMIT);
   const range = normalizeRange(from, to);
 
   const values = [range.from.toISOString(), range.to.toISOString(), safeLimit + 1];
