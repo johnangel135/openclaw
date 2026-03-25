@@ -410,7 +410,7 @@
 
     <section class="panel" aria-labelledby="api-keys-title">
       <h2 id="api-keys-title">Your API Keys</h2>
-      <p class="panel-subtitle">Keys are stored per account, encrypted at rest, and masked after save.</p>
+      <p class="panel-subtitle">Keys are stored per account, encrypted at rest, and masked after save. Leave a field blank to keep the currently saved key.</p>
       <div class="keys-grid">
         <div><label class="muted" for="keyOpenAI">OpenAI</label><input id="keyOpenAI" type="password" autocomplete="off" placeholder="sk-..."/></div>
         <div><label class="muted" for="keyAnthropic">Anthropic</label><input id="keyAnthropic" type="password" autocomplete="off" placeholder="sk-ant-..."/></div>
@@ -771,11 +771,21 @@
       btn.textContent = 'Saving…';
       setError('');
 
-      const body = {
-        openai: document.getElementById('keyOpenAI').value,
-        anthropic: document.getElementById('keyAnthropic').value,
-        gemini: document.getElementById('keyGemini').value,
-      };
+      const body = {};
+      const openai = document.getElementById('keyOpenAI').value.trim();
+      const anthropic = document.getElementById('keyAnthropic').value.trim();
+      const gemini = document.getElementById('keyGemini').value.trim();
+
+      if (openai) body.openai = openai;
+      if (anthropic) body.anthropic = anthropic;
+      if (gemini) body.gemini = gemini;
+
+      if (Object.keys(body).length === 0) {
+        document.getElementById('keysState').textContent = 'No changes to save. Enter at least one key to update it.';
+        btn.disabled = false;
+        btn.textContent = 'Save keys';
+        return;
+      }
       const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
