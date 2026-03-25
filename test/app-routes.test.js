@@ -141,7 +141,7 @@ test('auth page is served with accessibility and onboarding content', async () =
   assert.match(response.text, /role="status" aria-live="polite"/);
 });
 
-test('dedicated auth routes redirect to focused modes', async () => {
+test('dedicated auth routes redirect to focused modes and preserve query params', async () => {
   const { app } = await loadAppWithEnv({ adminToken: 'secret-token', databaseUrl: undefined });
 
   const login = await request(app).get('/auth/login');
@@ -151,6 +151,14 @@ test('dedicated auth routes redirect to focused modes', async () => {
   const signup = await request(app).get('/auth/signup');
   assert.equal(signup.status, 302);
   assert.equal(signup.headers.location, '/auth?mode=signup');
+
+  const signupWithPlan = await request(app).get('/auth/signup?plan=pro');
+  assert.equal(signupWithPlan.status, 302);
+  assert.equal(signupWithPlan.headers.location, '/auth?plan=pro&mode=signup');
+
+  const loginWithNext = await request(app).get('/auth/login?next=%2Fconsole%3Fplan%3Dstarter');
+  assert.equal(loginWithNext.status, 302);
+  assert.equal(loginWithNext.headers.location, '/auth?next=%2Fconsole%3Fplan%3Dstarter&mode=login');
 });
 
 test('console route redirects when logged out and serves dashboard when logged in', async () => {
@@ -167,7 +175,8 @@ test('console route redirects when logged out and serves dashboard when logged i
 
   assert.equal(loggedIn.status, 200);
   assert.match(loggedIn.text, /Your API Keys/);
-  assert.match(loggedIn.text, /Leave a field blank to keep the currently saved key/);
+  assert.match(loggedIn.text, /Leave a field blank to keep the currently saved key, or use Clear to remove one/);
+  assert.match(loggedIn.text, /Clear saved key/);
   assert.match(loggedIn.text, /Quick start: add at least one provider API key/);
 });
 

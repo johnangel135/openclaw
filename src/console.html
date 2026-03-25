@@ -317,6 +317,24 @@
       font: inherit;
     }
 
+    .key-field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .key-clear {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .key-clear input {
+      width: auto;
+      padding: 0;
+    }
+
     .skeleton {
       background: linear-gradient(90deg, #edf7f1 25%, #f7fcf8 50%, #edf7f1 75%);
       background-size: 200% 100%;
@@ -407,11 +425,23 @@
 
     <section class="panel" aria-labelledby="api-keys-title">
       <h2 id="api-keys-title">Your API Keys</h2>
-      <p class="panel-subtitle">Keys are stored per account, encrypted at rest, and masked after save. Leave a field blank to keep the currently saved key.</p>
+      <p class="panel-subtitle">Keys are stored per account and masked after save. Leave a field blank to keep the currently saved key, or use Clear to remove one.</p>
       <div class="keys-grid">
-        <div><label class="muted" for="keyOpenAI">OpenAI</label><input id="keyOpenAI" type="password" autocomplete="off" placeholder="sk-..."/></div>
-        <div><label class="muted" for="keyAnthropic">Anthropic</label><input id="keyAnthropic" type="password" autocomplete="off" placeholder="sk-ant-..."/></div>
-        <div><label class="muted" for="keyGemini">Gemini</label><input id="keyGemini" type="password" autocomplete="off" placeholder="AIza..."/></div>
+        <div class="key-field">
+          <label class="muted" for="keyOpenAI">OpenAI</label>
+          <input id="keyOpenAI" type="password" autocomplete="off" placeholder="sk-..."/>
+          <label class="key-clear" for="clearOpenAI"><input id="clearOpenAI" type="checkbox" />Clear saved key</label>
+        </div>
+        <div class="key-field">
+          <label class="muted" for="keyAnthropic">Anthropic</label>
+          <input id="keyAnthropic" type="password" autocomplete="off" placeholder="sk-ant-..."/>
+          <label class="key-clear" for="clearAnthropic"><input id="clearAnthropic" type="checkbox" />Clear saved key</label>
+        </div>
+        <div class="key-field">
+          <label class="muted" for="keyGemini">Gemini</label>
+          <input id="keyGemini" type="password" autocomplete="off" placeholder="AIza..."/>
+          <label class="key-clear" for="clearGemini"><input id="clearGemini" type="checkbox" />Clear saved key</label>
+        </div>
         <div><button id="saveKeysBtn" type="button">Save keys</button></div>
       </div>
       <p id="keysState" class="muted" style="margin-top:8px" role="status" aria-live="polite">Loading saved key status…</p>
@@ -772,13 +802,21 @@
       const openai = document.getElementById('keyOpenAI').value.trim();
       const anthropic = document.getElementById('keyAnthropic').value.trim();
       const gemini = document.getElementById('keyGemini').value.trim();
+      const clearOpenAI = document.getElementById('clearOpenAI').checked;
+      const clearAnthropic = document.getElementById('clearAnthropic').checked;
+      const clearGemini = document.getElementById('clearGemini').checked;
 
       if (openai) body.openai = openai;
+      else if (clearOpenAI) body.openai = '';
+
       if (anthropic) body.anthropic = anthropic;
+      else if (clearAnthropic) body.anthropic = '';
+
       if (gemini) body.gemini = gemini;
+      else if (clearGemini) body.gemini = '';
 
       if (Object.keys(body).length === 0) {
-        document.getElementById('keysState').textContent = 'No changes to save. Enter at least one key to update it.';
+        document.getElementById('keysState').textContent = 'No changes to save. Enter a key or check Clear on a provider.';
         btn.disabled = false;
         btn.textContent = 'Save keys';
         return;
@@ -800,6 +838,9 @@
       document.getElementById('keyOpenAI').value = '';
       document.getElementById('keyAnthropic').value = '';
       document.getElementById('keyGemini').value = '';
+      document.getElementById('clearOpenAI').checked = false;
+      document.getElementById('clearAnthropic').checked = false;
+      document.getElementById('clearGemini').checked = false;
       document.getElementById('keysState').textContent = `Saved securely at ${new Date().toISOString().replace('T', ' ').slice(0,19)} UTC · ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ') || 'none'}`;
       btn.disabled = false;
       btn.textContent = 'Save keys';
