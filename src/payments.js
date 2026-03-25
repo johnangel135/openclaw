@@ -11,7 +11,7 @@ const {
   STRIPE_CHECKOUT_MODE,
   STRIPE_BILLING_PORTAL_RETURN_URL,
 } = require('./config');
-const { getPlanById } = require('./pricing-plans');
+const { getPlanById, getPlanByStripePriceId } = require('./pricing-plans');
 const {
   getUserSubscription,
   recordPaymentEvent,
@@ -390,11 +390,13 @@ function toEntitlement(subscription) {
     };
   }
 
+  const configuredPlan = getPlanByStripePriceId(subscription.stripe_price_id || '');
+
   return {
     provider: subscription.provider,
     status: subscription.status,
     active: isActiveSubscriptionStatus(subscription.status),
-    plan_id: subscription.stripe_price_id || subscription.metadata?.plan_id || null,
+    plan_id: subscription.metadata?.plan_id || configuredPlan?.id || subscription.stripe_price_id || null,
     current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end).toISOString() : null,
     cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
   };

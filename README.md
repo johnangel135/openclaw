@@ -62,7 +62,13 @@ You can start from `.env.example` and fill in real secrets.
 
 Then open:
 
-- `GET /console?token=<CONSOLE_ADMIN_TOKEN>`
+- `GET /auth/signup` (create account) or `GET /auth/login`
+- `GET /console` (session-authenticated dashboard)
+- `GET /api/user/usage/summary` (session cookie)
+- `POST /api/user/infer` (session cookie + same-origin)
+
+Admin-token routes remain available for service-to-service usage:
+
 - `GET /api/usage/summary` (with `x-admin-token`)
 - `POST /api/llm/infer` (with `x-admin-token`)
 

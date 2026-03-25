@@ -218,6 +218,31 @@ test('entitlement endpoint returns active state for authenticated user', async (
   assert.equal(response.body.entitlement.plan_id, 'starter');
 });
 
+test('toEntitlement maps Stripe price ids to canonical plan ids when possible', async () => {
+  const { payments } = await loadAppForPayments({
+    stripeSecretKey: 'sk_test_123',
+    stripeWebhookSecret: 'whsec_test_123',
+    stripePriceStarter: 'price_starter_123',
+    stripePricePro: 'price_pro_123',
+  });
+
+  const mapped = payments.toEntitlement({
+    provider: 'stripe',
+    status: 'active',
+    stripe_price_id: 'price_pro_123',
+    metadata: {},
+  });
+  assert.equal(mapped.plan_id, 'pro');
+
+  const fallback = payments.toEntitlement({
+    provider: 'stripe',
+    status: 'active',
+    stripe_price_id: 'price_unknown_123',
+    metadata: {},
+  });
+  assert.equal(fallback.plan_id, 'price_unknown_123');
+});
+
 test('billing portal endpoint supports stub and mocked live flows', async () => {
   const stubAppData = await loadAppForPayments({
     databaseUrl: 'postgres://not-used',

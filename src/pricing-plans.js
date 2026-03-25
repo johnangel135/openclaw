@@ -63,7 +63,13 @@ function getPlanById(planId) {
   return getPricingPlans().find((plan) => plan.id === String(planId).trim().toLowerCase()) || null;
 }
 
+function getPlanByStripePriceId(stripePriceId) {
+  if (!stripePriceId) return null;
+  return getPricingPlans().find((plan) => plan.stripe_price_id === stripePriceId) || null;
+}
+
 module.exports = {
   getPricingPlans,
   getPlanById,
+  getPlanByStripePriceId,
 };
