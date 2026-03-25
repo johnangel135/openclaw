@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.34 - 2026-03-25
+
+- Fix static frontend routes: redirect /console and /auth to control plane (a0361ef)
+
 ## v1.0.33 - 2026-03-25
 
 - Add 3-plane architecture scaffold (frontend/control-plane/data-plane) and deployment blueprint (4c69a74)
