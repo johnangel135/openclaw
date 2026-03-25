@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OpenClaw Console</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
       --forest: #2d6a4f;
@@ -28,7 +25,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: linear-gradient(160deg, #f8fff9 0%, #f2fcf5 45%, #ecfaf1 100%);
       color: var(--text);
       min-height: 100vh;
@@ -50,7 +47,7 @@
     .nav-logo {
       text-decoration: none;
       color: var(--forest);
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: 1.3rem;
       font-weight: 700;
     }
@@ -97,7 +94,7 @@
     }
 
     .hero h1 {
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: clamp(1.8rem, 3vw, 2.5rem);
       margin-bottom: 0.45rem;
     }
@@ -127,7 +124,7 @@
       background: #fff;
       color: var(--bark);
       border-radius: 10px;
-      padding: 0.5rem 0.7rem;
+      padding: 0.6rem 0.8rem;
       font: inherit;
       cursor: pointer;
     }
@@ -197,7 +194,7 @@
     }
 
     .panel h2 {
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       color: var(--bark);
       margin-bottom: 0.65rem;
       font-size: 1.2rem;
@@ -655,7 +652,7 @@
         setOnboarding('Quick start: add at least one provider API key, click Save keys, then send a request to /api/user/infer. Your charts and request log will populate automatically.');
         return;
       }
-      setOnboarding('Nice — your keys are saved. Next step: send your first /api/user/infer request to unlock usage charts and request history.');
+      setOnboarding('Your keys are saved. Next step: send your first /api/user/infer request to unlock usage charts and request history.');
     }
 
     async function loadDashboard() {

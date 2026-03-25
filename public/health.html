@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OpenClaw Health</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after {
       margin: 0;
@@ -31,7 +28,7 @@
     }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: var(--sky);
       color: var(--text);
       min-height: 100vh;
@@ -39,11 +36,7 @@
     }
 
     .leaf {
-      position: fixed;
-      opacity: 0.12;
-      pointer-events: none;
-      animation: drift linear infinite;
-      z-index: 0;
+      display: none;
     }
 
     @keyframes drift {
@@ -74,7 +67,7 @@
     }
 
     .nav-logo {
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: 1.4rem;
       font-weight: 700;
       color: var(--forest);
@@ -112,7 +105,7 @@
       justify-content: center;
       text-align: center;
       padding: 7rem 1.5rem 4rem;
-      background: linear-gradient(160deg, var(--bark) 0%, var(--forest) 40%, #40916c 70%, var(--fern) 100%);
+      background: linear-gradient(165deg, #1f4f3a 0%, #2d6a4f 52%, #3f8666 100%);
       overflow: hidden;
     }
 
@@ -152,8 +145,7 @@
       height: 9px;
       border-radius: 999px;
       background: #deffe9;
-      box-shadow: 0 0 0 0 rgba(222, 255, 233, 0.9);
-      animation: pulse 1.8s ease-out infinite;
+      box-shadow: 0 0 0 0 rgba(222, 255, 233, 0.35);
     }
 
     @keyframes pulse {
@@ -162,7 +154,7 @@
     }
 
     .hero h1 {
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: clamp(2.6rem, 6vw, 4.9rem);
       font-weight: 700;
       color: #fff;
@@ -173,7 +165,7 @@
 
     .hero h1 em {
       color: var(--mint);
-      font-style: italic;
+      font-style: normal;
     }
 
     .hero-sub {
@@ -196,8 +188,8 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.85rem 2rem;
-      border-radius: 999px;
+      padding: 0.85rem 1.35rem;
+      border-radius: 10px;
       font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
@@ -247,7 +239,7 @@
 
     .section-title {
       text-align: center;
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: clamp(2rem, 4vw, 3rem);
       color: var(--bark);
       margin-bottom: 0.9rem;
@@ -385,9 +377,9 @@
         <span class="pulse-dot"></span>
         <span id="heroStatus">Checking service...</span>
       </div>
-      <h1>System <em>Health</em></h1>
+      <h1>System Health</h1>
       <p class="hero-sub">
-        Human-friendly runtime status page for OpenClaw. Metrics refresh every 10 seconds without leaving this view.
+        Runtime status dashboard for OpenClaw. Metrics refresh every 10 seconds for continuous operational visibility.
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#health-grid">View Metrics</a>
@@ -430,7 +422,7 @@
   </section>
 
   <footer>
-    OpenClaw Health Surface. Need machine output? Use <a href="/health.json">/health.json</a>.
+    OpenClaw health dashboard. For machine-readable output, use <a href="/health.json">/health.json</a>.
   </footer>
 
   <script>

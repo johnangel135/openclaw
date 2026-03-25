@@ -1,0 +1,69 @@
+services:
+  - type: web
+    name: openclaw
+    runtime: node
+    plan: free
+    region: oregon
+    autoDeploy: true
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: SECURITY_HEADERS_ENABLED
+        value: "true"
+      - key: SESSION_COOKIE_SECURE
+        value: "auto"
+      - key: SESSION_COOKIE_SAMESITE
+        value: lax
+      - key: PROXY_UPSTREAM_TIMEOUT_MS
+        value: "30000"
+      - key: PROXY_RATE_LIMIT_MAX_REQUESTS
+        value: "60"
+      - key: PROXY_RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: USAGE_REQUESTS_MAX_LIMIT
+        value: "200"
+      - key: USAGE_RETENTION_DAYS
+        value: "90"
+
+      # Required secrets / integrations
+      - key: CONSOLE_ADMIN_TOKEN
+        generateValue: true
+      - key: USER_KEYS_ENCRYPTION_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # Stripe (set if billing is enabled)
+      - key: STRIPE_CHECKOUT_MODE
+        value: live
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_STARTER
+        sync: false
+      - key: STRIPE_PRICE_PRO
+        sync: false
+      - key: STRIPE_PRICE_ENTERPRISE
+        sync: false
+      - key: STRIPE_SUCCESS_URL
+        sync: false
+      - key: STRIPE_CANCEL_URL
+        sync: false
+      - key: STRIPE_BILLING_PORTAL_RETURN_URL
+        sync: false

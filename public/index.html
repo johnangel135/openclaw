@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OpenClaw — Self-hosted AI gateway, usage analytics, and team-ready billing</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after {
       margin: 0;
@@ -29,7 +26,7 @@
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: var(--sky);
       color: var(--text);
       min-height: 100vh;
@@ -53,11 +50,7 @@
 
     /* ── Floating leaf decorations ───────────────────────────── */
     .leaf {
-      position: fixed;
-      opacity: 0.12;
-      pointer-events: none;
-      animation: drift linear infinite;
-      z-index: 0;
+      display: none;
     }
 
     @keyframes drift {
@@ -87,7 +80,7 @@
     }
 
     .nav-logo {
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: 1.4rem;
       font-weight: 700;
       color: var(--forest);
@@ -148,11 +141,10 @@
       text-align: center;
       padding: 7rem 1.5rem 5rem;
       background: linear-gradient(
-        160deg,
-        var(--bark)   0%,
-        var(--forest) 40%,
-        #40916c       70%,
-        var(--fern)   100%
+        165deg,
+        #1f4f3a 0%,
+        #2d6a4f 52%,
+        #3f8666 100%
       );
       overflow: hidden;
     }
@@ -180,17 +172,17 @@
       border: 1px solid rgba(255,255,255,0.25);
       color: var(--dew);
       font-size: 0.8rem;
-      font-weight: 500;
-      letter-spacing: 0.08em;
+      font-weight: 600;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      padding: 0.4rem 1.1rem;
-      border-radius: 999px;
+      padding: 0.4rem 0.9rem;
+      border-radius: 10px;
       margin-bottom: 2rem;
       backdrop-filter: blur(6px);
     }
 
     .hero h1 {
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: clamp(2.8rem, 7vw, 5.5rem);
       font-weight: 700;
       color: #fff;
@@ -200,7 +192,7 @@
     }
 
     .hero h1 em {
-      font-style: italic;
+      font-style: normal;
       color: var(--mint);
     }
 
@@ -224,8 +216,8 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.85rem 2rem;
-      border-radius: 999px;
+      padding: 0.85rem 1.35rem;
+      border-radius: 10px;
       font-size: 0.95rem;
       font-weight: 700;
       cursor: pointer;
@@ -321,7 +313,7 @@
 
     .section-title {
       text-align: center;
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: clamp(2rem, 4vw, 3rem);
       color: var(--bark);
       margin-bottom: 1rem;
@@ -395,7 +387,7 @@
     }
 
     .feature-card h3 {
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: 1.1rem;
       color: var(--bark);
       margin-bottom: 0.4rem;
@@ -435,7 +427,7 @@
 
     .plans-title {
       text-align: center;
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       color: var(--bark);
       font-size: 1.6rem;
       margin-bottom: 1rem;
@@ -487,7 +479,7 @@
     }
 
     .cta-banner h2 {
-      font-family: 'Playfair Display', serif;
+      font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
       font-size: clamp(1.8rem, 4vw, 2.8rem);
       color: #fff;
       margin-bottom: 1rem;
@@ -611,10 +603,10 @@
       <div class="hero-badge">
         <!-- inline seedling icon -->
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12C12 7 7 4 3 6c0 5 4 8 9 6z"/><path d="M12 12c0-5 5-8 9-6 0 5-4 8-9 6z"/></svg>
-        Now live on Node 20
+        Production-ready AI gateway
       </div>
 
-      <h1>Run your own AI gateway.<br /><em>See every token.</em></h1>
+      <h1>Run your AI gateway with confidence.<br /><em>Track every token.</em></h1>
 
       <p class="hero-sub">
         OpenClaw helps you ship production AI with confidence: bring your own provider keys,
@@ -647,44 +639,18 @@
 
     <div class="scroll-hint">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      scroll
+      Scroll
     </div>
   </section>
 
   <!-- Features -->
   <section class="features" id="features">
     <p class="section-label">What you get</p>
-    <h2 class="section-title">Onboard fast, then optimize with real usage data</h2>
+    <h2 class="section-title">Deploy quickly, then optimize with real usage data</h2>
     <p class="section-desc">From first request to production monitoring, OpenClaw gives you one place for API key setup, token accounting, estimated cost tracking, and performance insights.</p>
 
-    <div class="demo-strip">
-      <figure class="demo-shot video">
-        <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHBvY2o3bzMyeGx1MzB2Z2RjM3B6eTlkMDV0YnQ4a2w4b3FuN2Q1aSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/26ufdipQqU2lhNA4g/giphy.gif" alt="Animated dashboard workflow demo" loading="lazy" />
-        <figcaption>Dashboard workflow demo: usage analytics, token totals, and performance visibility.</figcaption>
-      </figure>
-      <figure class="demo-shot">
-        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/console" alt="Console request log demo" loading="lazy" />
-        <figcaption>Per-request logging captures input/output tokens, latency, status, and estimated cost.</figcaption>
-      </figure>
-      <figure class="demo-shot">
-        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/health" alt="Operations health endpoint demo" loading="lazy" />
-        <figcaption>Health and runtime checks support reliable operations and monitoring.</figcaption>
-      </figure>
-      <figure class="demo-shot">
-        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/#subscriptions" alt="Subscription plans demo" loading="lazy" />
-        <figcaption>Subscription plans map directly to usage scale and analytics needs.</figcaption>
-      </figure>
-    </div>
-
-    <section class="console-proof" aria-label="Console screenshots">
-      <article class="left">
-        <img src="https://image.thum.io/get/width/1400/https://johntruong.it.com/console" alt="OpenClaw console screenshot" loading="lazy" />
-        <div class="copy"><strong>Console at a glance:</strong> see usage summary, trend lines, model distribution, and request logs from one page.</div>
-      </article>
-      <article class="right">
-        <img src="https://image.thum.io/get/width/1200/https://johntruong.it.com/health" alt="Health and reliability screenshot" loading="lazy" />
-        <div class="copy"><strong>Reliability signals:</strong> monitor health and operational readiness before scaling traffic.</div>
-      </article>
+    <section class="section-desc" aria-label="Platform capabilities" style="max-width: 960px; margin-bottom: 2.4rem;">
+      OpenClaw provides a focused operator experience for secure inference routing, usage visibility, and subscription management without vendor lock-in.
     </section>
 
     <div class="features-grid">
@@ -738,7 +704,7 @@
 
   <!-- Footer -->
   <footer>
-    <p>Built with 🌿 by <a href="https://github.com/johnangel135">johnangel135</a> · MIT License</p>
+    <p>OpenClaw is open source under the MIT License. <a href="https://github.com/johnangel135/openclaw">View source on GitHub</a>.</p>
   </footer>
 
   <script>

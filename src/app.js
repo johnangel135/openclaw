@@ -2,6 +2,7 @@
 
 const express = require('express');
 const helmet = require('helmet');
+const compression = require('compression');
 const path = require('path');
 
 const { requireAdminToken, extractAdminToken } = require('./auth');
@@ -113,6 +114,10 @@ function parseLimit(limitRaw, fallback) {
     return fallback;
   }
   return Math.min(Math.max(parsed, 1), USAGE_REQUESTS_MAX_LIMIT);
+}
+
+function setPublicPageCache(res) {
+  res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
 }
 
 function getRequestOrigin(req) {
@@ -280,6 +285,7 @@ async function createApp() {
   }
 
   app.use(applyCors);
+  app.use(compression());
   app.use(express.json({
     limit: '1mb',
     verify: (req, res, buf) => {
@@ -377,12 +383,12 @@ async function createApp() {
     const wantsHtml = acceptHeader.includes('text/html');
     const wantsJson = req.query.format === 'json' || acceptHeader.includes('application/json');
 
-    res.set('Cache-Control', 'no-store');
-
     if (wantsHtml && !wantsJson) {
+      setPublicPageCache(res);
       return res.sendFile(path.join(PUBLIC_DIR, 'health.html'));
     }
 
+    res.set('Cache-Control', 'no-store');
     return res.json(healthData);
   });
 
@@ -402,6 +408,7 @@ async function createApp() {
   });
 
   app.get('/api/payments/plans', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     res.json({ plans: getPricingPlans() });
   });
 
@@ -674,6 +681,7 @@ async function createApp() {
 
   // Catch-all: serve index.html.
   app.get('*', (req, res) => {
+    setPublicPageCache(res);
     res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
   });
 
