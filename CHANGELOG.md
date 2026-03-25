@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.45 - 2026-03-25
+
+- Stabilize GitHub notifications: add retries/timeouts for uptime and billing sync workflows (e6a2585)
+- Harden auth password verification and align billing docs/tests (72dc78d)
+- Improve UX for auth expiry and rate-limit feedback (2a38f05)
+
 ## v1.0.44 - 2026-03-25
 
 - Polish subscription cards: aligned heights, consistent buttons, balanced plan emphasis (3682ba7)
