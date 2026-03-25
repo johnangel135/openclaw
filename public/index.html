@@ -103,7 +103,8 @@
       font-weight: 500;
       color: var(--muted);
       text-decoration: none;
-      transition: color 0.2s;
+      transition: color 0.2s, background 0.2s;
+      border-radius: 8px;
     }
 
     .nav-links a:hover { color: var(--forest); }
@@ -526,15 +527,22 @@
       .nav-links {
         display: none;
         position: absolute;
-        top: 3.25rem;
+        top: calc(100% + 0.45rem);
         right: 1rem;
+        left: 1rem;
         background: #fff;
-        border: 1px solid var(--mint);
-        border-radius: 10px;
-        padding: 0.55rem;
+        border: 1px solid #d9ecdf;
+        border-radius: 12px;
+        padding: 0.5rem;
         flex-direction: column;
-        gap: 0.6rem;
-        box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+        gap: 0.2rem;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.14);
+      }
+      .nav-links a {
+        padding: 0.65rem 0.7rem;
+      }
+      .nav-links a:hover {
+        background: #f3faf5;
       }
       .nav-links.open { display: flex; }
       .nav-console-mobile { display: inline-flex; align-items: center; }
