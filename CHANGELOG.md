@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.44 - 2026-03-25
+
+- Polish subscription cards: aligned heights, consistent buttons, balanced plan emphasis (3682ba7)
+
 ## v1.0.43 - 2026-03-25
 
 - Add hourly managed billing sync workflow with retry-safe meter event sending (916bc7b)
