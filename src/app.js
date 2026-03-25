@@ -55,6 +55,7 @@ const {
   SECURITY_HEADERS_ENABLED,
   TRUST_PROXY,
   USAGE_REQUESTS_MAX_LIMIT,
+  DATA_PLANE_SHARED_TOKEN,
 } = require('./config');
 const { hashIdentifier, logSecurityEvent } = require('./security-log');
 
@@ -175,6 +176,31 @@ function requireSameOriginForMutations(req, res, next) {
       error: {
         message: 'Cross-site request blocked',
         code: 'csrf_blocked',
+      },
+    });
+    return;
+  }
+
+  next();
+}
+
+function requireDataPlaneToken(req, res, next) {
+  if (!DATA_PLANE_SHARED_TOKEN) {
+    res.status(503).json({
+      error: {
+        message: 'DATA_PLANE_SHARED_TOKEN is not configured',
+        code: 'config_missing_data_plane_token',
+      },
+    });
+    return;
+  }
+
+  const presented = String(req.get('x-data-plane-token') || '').trim();
+  if (!presented || presented !== DATA_PLANE_SHARED_TOKEN) {
+    res.status(401).json({
+      error: {
+        message: 'Invalid data plane token',
+        code: 'unauthorized',
       },
     });
     return;
@@ -489,6 +515,7 @@ async function createApp() {
   });
 
   app.use('/api/llm', requireAdminToken, proxyRateLimiter);
+  app.use('/api/internal/infer', requireDataPlaneToken, proxyRateLimiter);
   app.use('/v1/chat/completions', requireAdminToken, proxyRateLimiter);
   app.use('/v1/responses', requireAdminToken, proxyRateLimiter);
   app.use('/api/usage', requireAdminToken);
@@ -541,6 +568,29 @@ async function createApp() {
       endpointName: '/api/user/infer',
       userId: req.user.id,
       apiKeys: userKeys,
+      responseFormatter: (value) => ({
+        provider: value.provider,
+        model: value.model,
+        status_code: value.upstream_status_code,
+        output_text: value.output_text,
+        usage: value.usage,
+        estimated_cost_usd: value.estimated_cost_usd,
+        raw_response: value.raw_response,
+      }),
+    });
+
+    res.status(result.statusCode).json(result.body);
+  }));
+
+  app.post('/api/internal/infer', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const inferPayload = req.body || {};
+    const result = await runProxyAndTrack({
+      inferPayload,
+      endpointName: '/api/internal/infer',
       responseFormatter: (value) => ({
         provider: value.provider,
         model: value.model,

@@ -5,10 +5,17 @@ const compression = require('compression');
 
 const PORT = Number(process.env.PORT || 10000);
 const CONTROL_PLANE_URL = String(process.env.CONTROL_PLANE_URL || '').replace(/\/$/, '');
+const DATA_PLANE_SHARED_TOKEN = String(process.env.DATA_PLANE_SHARED_TOKEN || '').trim();
 
 if (!CONTROL_PLANE_URL) {
   // eslint-disable-next-line no-console
   console.error('Missing CONTROL_PLANE_URL');
+  process.exit(1);
+}
+
+if (!DATA_PLANE_SHARED_TOKEN) {
+  // eslint-disable-next-line no-console
+  console.error('Missing DATA_PLANE_SHARED_TOKEN');
   process.exit(1);
 }
 
@@ -32,9 +39,7 @@ async function forward(req, res, path) {
       method: req.method,
       headers: {
         'content-type': req.get('content-type') || 'application/json',
-        authorization: req.get('authorization') || '',
-        'x-admin-token': req.get('x-admin-token') || '',
-        cookie: req.get('cookie') || '',
+        'x-data-plane-token': DATA_PLANE_SHARED_TOKEN,
       },
       body: ['GET', 'HEAD'].includes(req.method) ? undefined : JSON.stringify(req.body || {}),
     });
@@ -54,7 +59,7 @@ async function forward(req, res, path) {
   }
 }
 
-app.post('/v1/infer', (req, res) => forward(req, res, '/api/user/infer'));
+app.post('/v1/infer', (req, res) => forward(req, res, '/api/internal/infer'));
 app.post('/v1/chat/completions', (req, res) => forward(req, res, '/v1/chat/completions'));
 app.post('/v1/responses', (req, res) => forward(req, res, '/v1/responses'));
 

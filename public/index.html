@@ -758,9 +758,10 @@
       }
 
       const defaults = [
-        { id: 'starter', name: 'Starter', unit_amount: 1900, interval: 'month', features: ['Up to 50k monthly tracked proxy tokens', 'Personal analytics dashboard', 'Core support and updates'] },
-        { id: 'pro', name: 'Pro', unit_amount: 7900, interval: 'month', features: ['Up to 500k monthly tracked proxy tokens', 'Priority support', 'Expanded analytics windows'] },
-        { id: 'enterprise', name: 'Enterprise', unit_amount: 9900, interval: 'month', features: ['Unlimited access', 'Security/compliance collaboration', 'Dedicated onboarding + roadmap support'] },
+        { id: 'starter', name: 'Starter (BYOK)', unit_amount: 2900, interval: 'month', features: ['1 workspace', 'Hosted runtime + dashboard', 'Bring your own model keys'] },
+        { id: 'pro', name: 'Pro (Managed)', unit_amount: 14900, interval: 'month', features: ['2 seats', '10M included monthly tokens', 'Managed model access + overage billing'] },
+        { id: 'scale', name: 'Scale (Managed)', unit_amount: 49900, interval: 'month', features: ['5 workspaces', '10 seats', '60M included monthly tokens'] },
+        { id: 'enterprise', name: 'Enterprise', unit_amount: 0, interval: 'month', features: ['Custom contract', 'Security/compliance', 'Dedicated support'] },
       ];
 
       function money(cents) {
@@ -775,12 +776,18 @@
         rows.forEach((plan) => {
           const card = document.createElement('article');
           card.className = `plan-card ${plan.id === 'pro' ? 'pro' : ''}`;
-          const ctaText = plan.id === 'pro' ? 'Upgrade to Pro' : plan.id === 'enterprise' ? 'Get Enterprise' : 'Start Starter';
+          const ctaText = plan.id === 'pro'
+            ? 'Start Pro'
+            : plan.id === 'scale'
+              ? 'Start Scale'
+              : plan.id === 'enterprise'
+                ? 'Talk to Sales'
+                : 'Start Starter';
           card.innerHTML = `
             <div class="plan-name">${plan.name || plan.id}</div>
-            <div class="plan-price">${money(plan.unit_amount)}${plan.interval ? '/' + plan.interval : ''}</div>
+            <div class="plan-price">${plan.id === 'enterprise' ? 'Custom' : `${money(plan.unit_amount)}${plan.interval ? '/' + plan.interval : ''}`}</div>
             <ul>${(plan.features || []).map((f) => `<li>${f}</li>`).join('')}</ul>
-            <a class="btn ${plan.id === 'pro' ? 'btn-primary' : 'btn-ghost'}" href="/auth/signup?plan=${encodeURIComponent(plan.id || '')}">${ctaText}</a>
+            <a class="btn ${plan.id === 'pro' || plan.id === 'scale' ? 'btn-primary' : 'btn-ghost'}" href="${plan.id === 'enterprise' ? '/auth?contact=sales' : `/auth/signup?plan=${encodeURIComponent(plan.id || '')}`}">${ctaText}</a>
           `;
           host.appendChild(card);
         });

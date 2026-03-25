@@ -5,44 +5,61 @@ const DEFAULT_CURRENCY = 'usd';
 const DEFAULT_PLANS = [
   {
     id: 'starter',
-    name: 'Starter',
-    description: 'Good for individual prototyping and light automation.',
-    unit_amount: 1900,
+    name: 'Starter (BYOK)',
+    description: 'Hosted OpenClaw with your own model provider keys.',
+    unit_amount: 2900,
     currency: DEFAULT_CURRENCY,
     interval: 'month',
     stripe_price_env: 'STRIPE_PRICE_STARTER',
     features: [
-      'Up to 50k monthly proxy tokens tracked',
-      'Usage dashboard access',
-      'Community support',
+      '1 workspace',
+      'Hosted runtime + dashboard',
+      'Bring your own OpenAI/Anthropic/Gemini keys',
+      'Provider usage billed directly by your model provider',
     ],
   },
   {
     id: 'pro',
-    name: 'Pro',
-    description: 'For production workloads that need higher limits.',
-    unit_amount: 7900,
+    name: 'Pro (Managed)',
+    description: 'Managed model access with included monthly token allowance.',
+    unit_amount: 14900,
     currency: DEFAULT_CURRENCY,
     interval: 'month',
     stripe_price_env: 'STRIPE_PRICE_PRO',
     features: [
-      'Up to 500k monthly proxy tokens tracked',
-      'Priority support',
-      'Expanded analytics windows',
+      '2 seats',
+      '10M included monthly tokens',
+      'Managed model access',
+      'Token overage billing enabled',
+    ],
+  },
+  {
+    id: 'scale',
+    name: 'Scale (Managed)',
+    description: 'Higher-throughput managed deployment for growing teams.',
+    unit_amount: 49900,
+    currency: DEFAULT_CURRENCY,
+    interval: 'month',
+    stripe_price_env: 'STRIPE_PRICE_SCALE',
+    features: [
+      '5 workspaces',
+      '10 seats',
+      '60M included monthly tokens',
+      'Priority support and scaling guidance',
     ],
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    description: 'Unlimited access for high-volume teams.',
-    unit_amount: 9900,
+    description: 'Custom contract with security/compliance and dedicated support.',
+    unit_amount: 0,
     currency: DEFAULT_CURRENCY,
     interval: 'month',
     stripe_price_env: 'STRIPE_PRICE_ENTERPRISE',
     features: [
-      'Unlimited access',
-      'Security/compliance collaboration',
-      'Dedicated onboarding + roadmap support',
+      'Custom SSO and compliance requirements',
+      'Dedicated environment options',
+      'Commercial SLA and support',
     ],
   },
 ];
@@ -50,10 +67,11 @@ const DEFAULT_PLANS = [
 function getPricingPlans() {
   return DEFAULT_PLANS.map((plan) => {
     const stripePriceId = process.env[plan.stripe_price_env] || '';
+    const purchasable = plan.id === 'enterprise' ? false : Boolean(stripePriceId);
     return {
       ...plan,
       stripe_price_id: stripePriceId || null,
-      purchasable: Boolean(stripePriceId),
+      purchasable,
     };
   });
 }

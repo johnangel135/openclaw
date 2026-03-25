@@ -181,8 +181,10 @@ async function createStripeCheckoutSession({ userId, planId, customerEmail, orig
       customer_email: customerEmail || '',
       'metadata[user_id]': userId,
       'metadata[plan_id]': plan.id,
+      'metadata[stripe_price_id]': plan.stripe_price_id,
       'subscription_data[metadata][user_id]': userId,
       'subscription_data[metadata][plan_id]': plan.id,
+      'subscription_data[metadata][stripe_price_id]': plan.stripe_price_id,
     });
 
     const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -254,7 +256,7 @@ function deriveSubscriptionRecordFromStripeObject(stripeObject, fallback = {}) {
     status: normalizeStripeStatus(stripeObject?.status || fallback.status || 'unknown'),
     stripe_customer_id: stripeObject?.customer || fallback.stripe_customer_id || null,
     stripe_subscription_id: stripeObject?.id || fallback.stripe_subscription_id || null,
-    stripe_price_id: itemPriceId || metadata.plan_id || fallback.stripe_price_id || null,
+    stripe_price_id: itemPriceId || fallback.stripe_price_id || null,
     current_period_end: stripeObject?.current_period_end
       ? new Date(Number(stripeObject.current_period_end) * 1000).toISOString()
       : fallback.current_period_end || null,
@@ -313,7 +315,7 @@ async function processStripeWebhookEvent(event, deps = {}) {
     const userId = object?.metadata?.user_id || object?.client_reference_id || null;
     const stripeSubscriptionId = object?.subscription || null;
     const stripeCustomerId = object?.customer || null;
-    const stripePriceId = object?.metadata?.plan_id || null;
+    const stripePriceId = object?.metadata?.stripe_price_id || null;
 
     if (userId) {
       await upsertSubscription({
