@@ -72,6 +72,18 @@ Admin-token routes remain available for service-to-service usage:
 - `GET /api/usage/summary` (with `x-admin-token`)
 - `POST /api/llm/infer` (with `x-admin-token`)
 
+Control-plane ↔ data-plane internal routes use `x-data-plane-token` and require `DATA_PLANE_SHARED_TOKEN`:
+
+- `GET /api/internal/data-plane/health`
+- `GET /api/internal/data-plane/readiness`
+- `POST /api/internal/data-plane/lease/request`
+- `GET /api/internal/data-plane/lease/status/:requestId`
+- `POST /api/internal/data-plane/lease/attach`
+- `POST /api/internal/data-plane/lease/release/:requestId`
+- `PUT /api/internal/data-plane/nodes/:nodeId/state`
+- `GET /api/internal/data-plane/nodes/:nodeId`
+- `GET /api/internal/data-plane/nodes`
+
 ### Payments Setup (Stripe)
 
 Set payment env vars (test keys first):

@@ -138,6 +138,39 @@ async function initDatabase() {
   `);
   await db.query('CREATE INDEX IF NOT EXISTS idx_payment_events_provider_created_at ON payment_events (provider, created_at DESC)');
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS node_pool_provisioning_requests (
+      id BIGSERIAL PRIMARY KEY,
+      node_pool_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      requested_by TEXT,
+      worker_id TEXT,
+      leased_until TIMESTAMPTZ,
+      payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+      result JSONB NOT NULL DEFAULT '{}'::jsonb,
+      error_code TEXT,
+      error_message TEXT,
+      completed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_node_pool_provisioning_requests_pool_status_id ON node_pool_provisioning_requests (node_pool_id, status, id)');
+  await db.query('CREATE INDEX IF NOT EXISTS idx_node_pool_provisioning_requests_worker_status ON node_pool_provisioning_requests (worker_id, status)');
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS data_plane_nodes (
+      node_id TEXT PRIMARY KEY,
+      state TEXT NOT NULL DEFAULT 'ready',
+      payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_data_plane_nodes_state_last_seen ON data_plane_nodes (state, last_seen_at DESC)');
+
   for (const [provider, model, inputPrice, outputPrice] of SEEDED_MODEL_PRICING) {
     await db.query(
       `
@@ -678,6 +711,145 @@ async function recordStripeUsageSyncRun({ userId, periodStart, periodEnd, meterT
   return { inserted: result.rowCount > 0 };
 }
 
+async function createDataPlaneLeaseRequest({ nodePoolId = 'default', requestedBy = null, payload = {} }) {
+  const db = getPool();
+  const result = await db.query(
+    `
+    INSERT INTO node_pool_provisioning_requests (
+      node_pool_id,
+      status,
+      requested_by,
+      payload,
+      result,
+      updated_at
+    )
+    VALUES ($1, 'pending', $2, $3::jsonb, '{}'::jsonb, NOW())
+    RETURNING *
+    `,
+    [nodePoolId, requestedBy, JSON.stringify(payload || {})],
+  );
+
+  return result.rows[0] || null;
+}
+
+async function attachDataPlaneLease({ nodePoolId = 'default', workerId, leaseTtlSeconds = 60 }) {
+  const db = getPool();
+  const safeTtlSeconds = Math.min(Math.max(Number.parseInt(leaseTtlSeconds, 10) || 60, 5), 3600);
+
+  const result = await db.query(
+    `
+    WITH candidate AS (
+      SELECT id
+      FROM node_pool_provisioning_requests
+      WHERE node_pool_id = $1
+        AND (
+          status = 'pending'
+          OR (status = 'leased' AND leased_until IS NOT NULL AND leased_until < NOW())
+        )
+      ORDER BY id ASC
+      FOR UPDATE SKIP LOCKED
+      LIMIT 1
+    )
+    UPDATE node_pool_provisioning_requests AS r
+    SET
+      status = 'leased',
+      worker_id = $2,
+      leased_until = NOW() + ($3::text || ' seconds')::interval,
+      updated_at = NOW()
+    FROM candidate
+    WHERE r.id = candidate.id
+    RETURNING r.*
+    `,
+    [nodePoolId, workerId, String(safeTtlSeconds)],
+  );
+
+  return result.rows[0] || null;
+}
+
+async function getDataPlaneLeaseStatus(id) {
+  const db = getPool();
+  const result = await db.query(
+    'SELECT * FROM node_pool_provisioning_requests WHERE id = $1 LIMIT 1',
+    [id],
+  );
+
+  return result.rows[0] || null;
+}
+
+async function releaseDataPlaneLease({ id, status = 'completed', result = {}, errorCode = null, errorMessage = null }) {
+  const db = getPool();
+  const safeStatus = ['completed', 'failed', 'released'].includes(status) ? status : 'completed';
+
+  const queryResult = await db.query(
+    `
+    UPDATE node_pool_provisioning_requests
+    SET
+      status = $2,
+      result = $3::jsonb,
+      error_code = $4,
+      error_message = $5,
+      leased_until = NULL,
+      completed_at = CASE WHEN $2 IN ('completed', 'failed') THEN NOW() ELSE completed_at END,
+      updated_at = NOW()
+    WHERE id = $1
+    RETURNING *
+    `,
+    [id, safeStatus, JSON.stringify(result || {}), errorCode, errorMessage],
+  );
+
+  return queryResult.rows[0] || null;
+}
+
+async function upsertDataPlaneNodeState({ nodeId, state = 'ready', payload = {}, metadata = {}, lastSeenAt = null }) {
+  const db = getPool();
+  const result = await db.query(
+    `
+    INSERT INTO data_plane_nodes (
+      node_id,
+      state,
+      payload,
+      metadata,
+      last_seen_at,
+      updated_at
+    )
+    VALUES ($1, $2, $3::jsonb, $4::jsonb, COALESCE($5::timestamptz, NOW()), NOW())
+    ON CONFLICT (node_id)
+    DO UPDATE SET
+      state = EXCLUDED.state,
+      payload = EXCLUDED.payload,
+      metadata = EXCLUDED.metadata,
+      last_seen_at = COALESCE(EXCLUDED.last_seen_at, data_plane_nodes.last_seen_at),
+      updated_at = NOW()
+    RETURNING *
+    `,
+    [nodeId, state, JSON.stringify(payload || {}), JSON.stringify(metadata || {}), toIsoOrNull(lastSeenAt)],
+  );
+
+  return result.rows[0] || null;
+}
+
+async function getDataPlaneNodeState(nodeId) {
+  const db = getPool();
+  const result = await db.query('SELECT * FROM data_plane_nodes WHERE node_id = $1 LIMIT 1', [nodeId]);
+  return result.rows[0] || null;
+}
+
+async function listDataPlaneNodes(limit = 100) {
+  const db = getPool();
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 100, 1), 500);
+  const result = await db.query(
+    `
+    SELECT *
+    FROM data_plane_nodes
+    ORDER BY updated_at DESC
+    LIMIT $1
+    `,
+    [safeLimit],
+  );
+
+  return result.rows;
+}
+
 async function closeDatabase() {
   if (retentionTimer) {
     clearInterval(retentionTimer);
@@ -695,12 +867,17 @@ module.exports = {
   SEEDED_MODEL_PRICING,
   calculateEstimatedCost,
   closeDatabase,
+  createDataPlaneLeaseRequest,
   estimateCostUsd,
+  getDataPlaneLeaseStatus,
+  getDataPlaneNodeState,
   getUsageByModel,
   getUsagePerf,
   getUsageRequests,
   getManagedUsageForPeriod,
+  getPool,
   getUsageSummary,
+  listDataPlaneNodes,
   getUsageTrend,
   getUserSubscription,
   hashPaymentPayload,
@@ -711,6 +888,9 @@ module.exports = {
   purgeOldUsage,
   recordPaymentEvent,
   recordStripeUsageSyncRun,
+  releaseDataPlaneLease,
   startRetentionPurgeScheduler,
+  upsertDataPlaneNodeState,
   upsertUserSubscription,
+  attachDataPlaneLease,
 };

@@ -34,4 +34,9 @@
 
 ## Notes
 - This is a production-ready split baseline for scaling and independent autoscaling.
+- Internal node-pool provisioning lifecycle routes are now exposed through the data plane:
+  - `POST /v1/node-pools/:nodePoolId/provisioning-requests`
+  - `POST /v1/node-pools/:nodePoolId/provisioning-requests/lease`
+  - `GET /v1/provisioning-requests/:requestId`
+  - `POST /v1/provisioning-requests/:requestId/status`
 - Next hardening step: move inference logic fully into data plane (instead of forwarding) and keep control plane purely orchestration/billing.

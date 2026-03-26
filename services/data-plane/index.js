@@ -63,6 +63,22 @@ app.post('/v1/infer', (req, res) => forward(req, res, '/api/internal/infer'));
 app.post('/v1/chat/completions', (req, res) => forward(req, res, '/v1/chat/completions'));
 app.post('/v1/responses', (req, res) => forward(req, res, '/v1/responses'));
 
+app.post('/v1/node-pools/:nodePoolId/provisioning-requests', (req, res) => {
+  forward(req, res, `/api/internal/node-pools/${encodeURIComponent(req.params.nodePoolId)}/provisioning-requests`);
+});
+
+app.post('/v1/node-pools/:nodePoolId/provisioning-requests/lease', (req, res) => {
+  forward(req, res, `/api/internal/node-pools/${encodeURIComponent(req.params.nodePoolId)}/provisioning-requests/lease`);
+});
+
+app.get('/v1/provisioning-requests/:requestId', (req, res) => {
+  forward(req, res, `/api/internal/provisioning-requests/${encodeURIComponent(req.params.requestId)}`);
+});
+
+app.post('/v1/provisioning-requests/:requestId/status', (req, res) => {
+  forward(req, res, `/api/internal/provisioning-requests/${encodeURIComponent(req.params.requestId)}/status`);
+});
+
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`Data plane listening on :${PORT}`);

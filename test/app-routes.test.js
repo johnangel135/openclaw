@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 
-async function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv, corsAllowedOrigins, securityHeadersEnabled, redisUrl }) {
+async function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv, corsAllowedOrigins, securityHeadersEnabled, redisUrl, dataPlaneToken }) {
   if (adminToken === undefined) {
     delete process.env.CONSOLE_ADMIN_TOKEN;
   } else {
@@ -39,6 +39,12 @@ async function loadAppWithEnv({ adminToken, databaseUrl, nodeEnv, corsAllowedOri
     delete process.env.REDIS_URL;
   } else {
     process.env.REDIS_URL = redisUrl;
+  }
+
+  if (dataPlaneToken === undefined) {
+    delete process.env.DATA_PLANE_SHARED_TOKEN;
+  } else {
+    process.env.DATA_PLANE_SHARED_TOKEN = dataPlaneToken;
   }
 
   delete require.cache[require.resolve('../src/config')];
@@ -226,5 +232,58 @@ test('usage requests endpoint rejects invalid cursor values early', async () => 
 
   assert.equal(response.status, 400);
   assert.equal(response.body.error.code, 'invalid_cursor');
+});
+
+test('data plane pool endpoints require shared token', async () => {
+  const { app } = await loadAppWithEnv({
+    adminToken: 'secret-token',
+    databaseUrl: undefined,
+    dataPlaneToken: 'dp-secret',
+  });
+
+  const unauthorized = await request(app)
+    .get('/api/internal/data-plane/health');
+
+  assert.equal(unauthorized.status, 401);
+  assert.equal(unauthorized.body.error.code, 'unauthorized');
+
+  const authorized = await request(app)
+    .get('/api/internal/data-plane/health')
+    .set('x-data-plane-token', 'dp-secret');
+
+  assert.equal(authorized.status, 200);
+  assert.equal(authorized.body.component, 'data-plane-pool-manager');
+});
+
+test('data plane readiness reports missing dependencies', async () => {
+  const { app } = await loadAppWithEnv({
+    adminToken: 'secret-token',
+    databaseUrl: undefined,
+    dataPlaneToken: 'dp-secret',
+  });
+
+  const response = await request(app)
+    .get('/api/internal/data-plane/readiness')
+    .set('x-data-plane-token', 'dp-secret');
+
+  assert.equal(response.status, 503);
+  assert.equal(response.body.checks.data_plane_token_configured, true);
+  assert.equal(response.body.checks.database_configured, false);
+});
+
+test('data plane lease request endpoint returns 503 when database is missing', async () => {
+  const { app } = await loadAppWithEnv({
+    adminToken: 'secret-token',
+    databaseUrl: undefined,
+    dataPlaneToken: 'dp-secret',
+  });
+
+  const response = await request(app)
+    .post('/api/internal/data-plane/lease/request')
+    .set('x-data-plane-token', 'dp-secret')
+    .send({ node_pool_id: 'default', payload: { action: 'start' } });
+
+  assert.equal(response.status, 503);
+  assert.equal(response.body.error.code, 'config_missing_database_url');
 });
 

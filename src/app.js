@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -21,13 +22,16 @@ const {
 } = require('./user-auth');
 const {
   estimateCostUsd,
+  getDataPlaneNodeState,
   getUsageByModel,
   getUsagePerf,
   getUsageRequests,
   getUsageSummary,
   getUsageTrend,
   isDatabaseConfigured,
+  listDataPlaneNodes,
   logUsageEvent,
+  upsertDataPlaneNodeState,
 } = require('./db');
 const {
   ProxyError,
@@ -59,6 +63,12 @@ const {
   DATA_PLANE_SHARED_TOKEN,
 } = require('./config');
 const { hashIdentifier, logSecurityEvent } = require('./security-log');
+const {
+  acquireProvisioningLease,
+  createProvisioningRequest,
+  getProvisioningRequestById,
+  updateProvisioningRequestStatus,
+} = require('./node-pool-provisioning');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const CONSOLE_FILE = path.join(__dirname, 'console.html');
@@ -197,7 +207,13 @@ function requireDataPlaneToken(req, res, next) {
   }
 
   const presented = String(req.get('x-data-plane-token') || '').trim();
-  if (!presented || presented !== DATA_PLANE_SHARED_TOKEN) {
+  const presentedBuffer = Buffer.from(presented, 'utf8');
+  const expectedBuffer = Buffer.from(DATA_PLANE_SHARED_TOKEN, 'utf8');
+  const valid = presentedBuffer.length > 0
+    && presentedBuffer.length === expectedBuffer.length
+    && crypto.timingSafeEqual(presentedBuffer, expectedBuffer);
+
+  if (!valid) {
     res.status(401).json({
       error: {
         message: 'Invalid data plane token',
@@ -517,6 +533,9 @@ async function createApp() {
 
   app.use('/api/llm', requireAdminToken, proxyRateLimiter);
   app.use('/api/internal/infer', requireDataPlaneToken, proxyRateLimiter);
+  app.use('/api/internal/data-plane', requireDataPlaneToken, proxyRateLimiter);
+  app.use('/api/internal/node-pools', requireDataPlaneToken, proxyRateLimiter);
+  app.use('/api/internal/provisioning-requests', requireDataPlaneToken, proxyRateLimiter);
   app.use('/v1/chat/completions', requireAdminToken, proxyRateLimiter);
   app.use('/v1/responses', requireAdminToken, proxyRateLimiter);
   app.use('/api/usage', requireAdminToken);
@@ -604,6 +623,239 @@ async function createApp() {
     });
 
     res.status(result.statusCode).json(result.body);
+  }));
+
+  app.get('/api/internal/data-plane/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'openclaw-control-plane',
+      component: 'data-plane-pool-manager',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  app.get('/api/internal/data-plane/readiness', (req, res) => {
+    const ready = Boolean(DATA_PLANE_SHARED_TOKEN) && isDatabaseConfigured();
+    const payload = {
+      ready,
+      checks: {
+        data_plane_token_configured: Boolean(DATA_PLANE_SHARED_TOKEN),
+        database_configured: isDatabaseConfigured(),
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    res.status(ready ? 200 : 503).json(payload);
+  });
+
+  app.post('/api/internal/data-plane/lease/request', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const nodePoolId = String(req.body?.node_pool_id || 'default').trim();
+    const requestRecord = await createProvisioningRequest({
+      nodePoolId,
+      requestedBy: req.body?.requested_by || null,
+      payload: req.body?.payload || req.body || {},
+    });
+
+    res.status(201).json({ lease_request: requestRecord });
+  }));
+
+  app.get('/api/internal/data-plane/lease/status/:requestId', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const requestRecord = await getProvisioningRequestById(req.params.requestId);
+    if (!requestRecord) {
+      res.status(404).json({ error: { message: 'Lease request not found', code: 'not_found' } });
+      return;
+    }
+
+    res.json({ lease_request: requestRecord });
+  }));
+
+  app.post('/api/internal/data-plane/lease/attach', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const nodePoolId = String(req.body?.node_pool_id || 'default').trim();
+    const workerId = String(req.body?.worker_id || '').trim();
+    if (!workerId) {
+      res.status(400).json({ error: { message: 'worker_id is required', code: 'invalid_request' } });
+      return;
+    }
+
+    const leaseRequest = await acquireProvisioningLease({
+      nodePoolId,
+      workerId,
+      leaseTtlSeconds: req.body?.lease_ttl_seconds,
+    });
+
+    if (!leaseRequest) {
+      res.status(204).end();
+      return;
+    }
+
+    res.json({ lease_request: leaseRequest });
+  }));
+
+  app.post('/api/internal/data-plane/lease/release/:requestId', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const mappedStatus = req.body?.status === 'failed' ? 'failed' : (req.body?.status === 'cancelled' ? 'cancelled' : 'succeeded');
+    const updated = await updateProvisioningRequestStatus({
+      requestId: req.params.requestId,
+      status: mappedStatus,
+      workerId: req.body?.worker_id || null,
+      result: req.body?.result || null,
+      errorCode: req.body?.error_code || null,
+      errorMessage: req.body?.error_message || null,
+    });
+
+    if (!updated) {
+      res.status(404).json({ error: { message: 'Lease request not found', code: 'not_found' } });
+      return;
+    }
+
+    res.json({ lease_request: updated });
+  }));
+
+  app.put('/api/internal/data-plane/nodes/:nodeId/state', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const nodeId = String(req.params.nodeId || '').trim();
+    if (!nodeId) {
+      res.status(400).json({ error: { message: 'nodeId is required', code: 'invalid_request' } });
+      return;
+    }
+
+    const node = await upsertDataPlaneNodeState({
+      nodeId,
+      state: req.body?.state || 'ready',
+      payload: req.body?.payload || {},
+      metadata: req.body?.metadata || {},
+      lastSeenAt: req.body?.last_seen_at || null,
+    });
+
+    res.json({ node });
+  }));
+
+  app.get('/api/internal/data-plane/nodes/:nodeId', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const node = await getDataPlaneNodeState(req.params.nodeId);
+    if (!node) {
+      res.status(404).json({ error: { message: 'Node not found', code: 'not_found' } });
+      return;
+    }
+
+    res.json({ node });
+  }));
+
+  app.get('/api/internal/data-plane/nodes', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const nodes = await listDataPlaneNodes(req.query.limit);
+    res.json({ nodes });
+  }));
+
+  app.post('/api/internal/node-pools/:nodePoolId/provisioning-requests', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const nodePoolId = String(req.params.nodePoolId || '').trim();
+    if (!nodePoolId) {
+      res.status(400).json({ error: { message: 'nodePoolId is required', code: 'invalid_request' } });
+      return;
+    }
+
+    const created = await createProvisioningRequest({
+      nodePoolId,
+      payload: req.body?.payload || req.body || {},
+      requestedBy: req.body?.requested_by || null,
+    });
+
+    res.status(201).json({ request: created });
+  }));
+
+  app.post('/api/internal/node-pools/:nodePoolId/provisioning-requests/lease', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const nodePoolId = String(req.params.nodePoolId || '').trim();
+    const workerId = String(req.body?.worker_id || '').trim();
+    const leaseTtlSeconds = req.body?.lease_ttl_seconds;
+
+    if (!nodePoolId || !workerId) {
+      res.status(400).json({ error: { message: 'nodePoolId and worker_id are required', code: 'invalid_request' } });
+      return;
+    }
+
+    const leased = await acquireProvisioningLease({ nodePoolId, workerId, leaseTtlSeconds });
+    if (!leased) {
+      res.status(204).end();
+      return;
+    }
+
+    res.json({ request: leased });
+  }));
+
+  app.get('/api/internal/provisioning-requests/:requestId', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    const found = await getProvisioningRequestById(req.params.requestId);
+    if (!found) {
+      res.status(404).json({ error: { message: 'Provisioning request not found', code: 'not_found' } });
+      return;
+    }
+
+    res.json({ request: found });
+  }));
+
+  app.post('/api/internal/provisioning-requests/:requestId/status', asyncHandler(async (req, res) => {
+    if (!requireDatabase(res)) {
+      return;
+    }
+
+    try {
+      const updated = await updateProvisioningRequestStatus({
+        requestId: req.params.requestId,
+        status: req.body?.status,
+        workerId: req.body?.worker_id || null,
+        result: req.body?.result || null,
+        errorCode: req.body?.error_code || null,
+        errorMessage: req.body?.error_message || null,
+      });
+
+      if (!updated) {
+        res.status(404).json({ error: { message: 'Provisioning request not found', code: 'not_found' } });
+        return;
+      }
+
+      res.json({ request: updated });
+    } catch (error) {
+      if (String(error.message || '') === 'invalid_status') {
+        res.status(400).json({ error: { message: 'Invalid status', code: 'invalid_status' } });
+        return;
+      }
+      throw error;
+    }
   }));
 
   app.post('/v1/chat/completions', asyncHandler(async (req, res) => {
