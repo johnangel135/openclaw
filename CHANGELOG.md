@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.47 - 2026-03-26
+
+- chore(polish): repo cleanup, docs refresh, and UI/UX improvements (80c4bea)
+
 ## v1.0.46 - 2026-03-26
 
 - feat(pool): add CP/DP node-pool provisioning lifecycle and deploy-ready docs (d49cfab)
