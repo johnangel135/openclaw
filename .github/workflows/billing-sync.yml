@@ -29,6 +29,7 @@ jobs:
 
           RESPONSE_FILE=$(mktemp)
           HTTP_CODE=$(curl --silent --show-error --location \
+            --retry 3 --retry-all-errors --max-time 90 \
             --write-out "%{http_code}" \
             --output "$RESPONSE_FILE" \
             --request POST "$CONTROL_PLANE_SYNC_URL" \
