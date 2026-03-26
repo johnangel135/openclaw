@@ -1,78 +1,112 @@
-# 🌿 OpenClaw
+# OpenClaw
 
-> A beautiful, nature-inspired Node.js welcome page — containerised, CI/CD-ready, and always green.
+OpenClaw is a 3-plane LLM gateway platform built on Node.js + Express:
 
-[![CI](https://github.com/johnangel135/openclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/johnangel135/openclaw/actions/workflows/ci.yml)
-[![CD](https://github.com/johnangel135/openclaw/actions/workflows/cd.yml/badge.svg)](https://github.com/johnangel135/openclaw/actions/workflows/cd.yml)
-[![Uptime](https://github.com/johnangel135/openclaw/actions/workflows/uptime.yml/badge.svg)](https://github.com/johnangel135/openclaw/actions/workflows/uptime.yml)
-[![Release](https://github.com/johnangel135/openclaw/actions/workflows/release.yml/badge.svg)](https://github.com/johnangel135/openclaw/actions/workflows/release.yml)
+- **Frontend plane**: static web assets (`public/`)
+- **Control plane**: auth, billing, usage tracking, admin APIs, orchestration (`src/`)
+- **Data plane**: ingress/forwarder for inference and provisioning APIs (`services/data-plane/`)
 
-## Overview
+It supports managed provider keys and BYOK-style per-user keys, OpenAI-compatible endpoints, usage analytics, and Stripe-backed subscription/billing flows.
 
-OpenClaw is a lightweight Express.js web application featuring:
+---
 
-- **Nature-inspired landing page** — forest green palette, animated leaf SVGs, Google Fonts (Playfair Display + Inter), fully responsive
-- **Health page** at `/health` — responsive status UI for humans
-- **Machine health JSON** at `/health.json` (or `/health?format=json`) — includes uptime and timestamp
-- **Docker image** — multi-stage build, non-root user, minimal footprint
-- **GitHub Actions CI** — lint → test → build → docker-build on every push/PR
-- **GitHub Actions CD** — auto-publish to `ghcr.io/johnangel135/openclaw` on merge to `main`
-- **Render redeploy trigger** — CD calls your Render deploy hook after image push
-- **GitHub Auto Release** — publishes `v1.x.x` GitHub Releases on each `main` push and updates `CHANGELOG.md`
-- **Uptime monitor** — GitHub Actions checks `/health` every 10 minutes
-- **Node.js runtime pinned** — Node `20.x` via `engines` and `.nvmrc`
-- **LLM Token & Cost Console** — protected `/console` dashboard with token/cost analytics
-- **LLM proxy endpoints** — `/v1/chat/completions`, `/v1/responses`, `/api/llm/infer`
-- **Postgres usage persistence** — stores request-level usage with 90-day default retention
-- **Optional Redis production mode** — shared session store + distributed rate limiting with automatic in-memory fallback
-- **Stripe subscriptions** — checkout, webhook processing, subscription persistence, entitlements, billing portal
+## Architecture at a glance
 
-## Quick Start
-
-```bash
-# Run locally
-npm install
-npm start
-# → http://localhost:3000
-
-# Run with Docker
-docker pull ghcr.io/johnangel135/openclaw:latest
-docker run -p 3000:3000 ghcr.io/johnangel135/openclaw:latest
+```text
+Clients
+  │
+  ├─> Frontend plane (static UI: /, /health)
+  │
+  └─> Data plane (high-throughput ingress)
+         ├─ /v1/infer
+         ├─ /v1/chat/completions
+         ├─ /v1/responses
+         └─ node-pool provisioning endpoints
+                  │
+                  ▼
+          Control plane
+         (auth, policy, usage, billing, DB, admin/internal APIs)
+                  │
+                  ├─ LLM providers (OpenAI/Anthropic/Gemini)
+                  ├─ Postgres (usage, users, provisioning state)
+                  └─ Redis (optional: distributed sessions + rate limits)
 ```
 
-### LLM Console Setup
+See `ARCHITECTURE_HOSTED_OPENCLAW.md` for the full hosted model.
 
-Configure these environment variables before using the LLM proxy and `/console`:
+---
 
-```bash
-DATABASE_URL=postgres://...
-CONSOLE_ADMIN_TOKEN=your_admin_token
-OPENAI_API_KEY=...
-ANTHROPIC_API_KEY=...
-GEMINI_API_KEY=...
-USAGE_RETENTION_DAYS=90
+## Repository structure
 
-# Optional (recommended for multi-instance deployments)
-REDIS_URL=redis://127.0.0.1:6379
-REDIS_CONNECT_TIMEOUT_MS=3000
-REDIS_KEY_PREFIX=openclaw:
+```text
+openclaw/
+├── public/                         # Frontend plane static assets
+├── src/                            # Control plane
+│   ├── app.js                      # Main routes + middleware
+│   ├── db.js                       # Postgres schema/init + queries
+│   ├── providers.js                # OpenAI/Anthropic/Gemini adapters
+│   ├── payments.js                 # Stripe checkout/webhooks/metering
+│   ├── user-auth.js                # Session auth + per-user API keys
+│   └── node-pool-provisioning.js   # Provisioning request/lease lifecycle
+├── services/
+│   └── data-plane/
+│       └── index.js                # Data plane ingress + CP forwarding
+├── db/migrations/                  # SQL migrations
+├── docs/
+│   └── node-pool-provisioning-spec.md
+├── render-3plane.yaml              # Render blueprint (3 services)
+└── DEPLOY_3PLANE.md                # Deployment runbook
 ```
 
-You can start from `.env.example` and fill in real secrets.
+---
 
-Then open:
+## Core capabilities
 
-- `GET /auth/signup` (create account) or `GET /auth/login`
-- `GET /console` (session-authenticated dashboard)
-- `GET /api/user/usage/summary` (session cookie)
-- `POST /api/user/infer` (session cookie + same-origin)
+- OpenAI-compatible APIs: `/v1/chat/completions`, `/v1/responses`
+- Unified infer API: `/api/llm/infer`, `/api/user/infer`, `/api/internal/infer`
+- Session auth + per-user encrypted provider keys
+- Usage/cost analytics with dashboard at `/console`
+- Stripe subscriptions, checkout, billing portal, webhook handling, meter sync
+- Data-plane lease + node state tracking APIs
+- **Node-pool provisioning workflow** exposed via data plane for workers
 
-Admin-token routes remain available for service-to-service usage:
+---
 
-- `GET /api/usage/summary` (with `x-admin-token`)
-- `POST /api/llm/infer` (with `x-admin-token`)
+## API surface (current)
 
-Control-plane ↔ data-plane internal routes use `x-data-plane-token` and require `DATA_PLANE_SHARED_TOKEN`:
+### Public/system
+
+- `GET /` — landing page
+- `GET /health` — health page or JSON (`?format=json`)
+- `GET /health.json` — machine health JSON
+
+### Auth + user console
+
+- `GET /auth/login`, `GET /auth/signup`
+- `POST /api/auth/login`, `POST /api/auth/signup`, `POST /api/auth/logout`
+- `GET /console` (session required)
+- `GET /api/user/usage/summary` (session)
+- `GET /api/user/api-keys`, `POST /api/user/api-keys` (session)
+
+### Inference endpoints
+
+- `POST /api/llm/infer` (**admin token**)
+- `POST /api/user/infer` (**session auth**)
+- `POST /api/internal/infer` (**data-plane token**)
+- `POST /v1/chat/completions` (**admin token**)
+- `POST /v1/responses` (**admin token**)
+
+### Payments
+
+- `GET /api/payments/readiness`
+- `GET /api/payments/plans`
+- `POST /api/user/payments/checkout-session` (session + same-origin)
+- `POST /api/payments/webhook/stripe`
+- `GET /api/user/subscription` (session)
+- `POST /api/user/payments/billing-portal` (session + same-origin)
+
+### Internal control-plane data-plane APIs
+(Require header `x-data-plane-token` matching `DATA_PLANE_SHARED_TOKEN`.)
 
 - `GET /api/internal/data-plane/health`
 - `GET /api/internal/data-plane/readiness`
@@ -84,75 +118,104 @@ Control-plane ↔ data-plane internal routes use `x-data-plane-token` and requir
 - `GET /api/internal/data-plane/nodes/:nodeId`
 - `GET /api/internal/data-plane/nodes`
 
-### Payments Setup (Stripe)
+### Internal node-pool provisioning APIs
+(Also protected by `x-data-plane-token`.)
 
-Set payment env vars (test keys first):
+- `POST /api/internal/node-pools/:nodePoolId/provisioning-requests`
+- `POST /api/internal/node-pools/:nodePoolId/provisioning-requests/lease`
+- `GET /api/internal/provisioning-requests/:requestId`
+- `POST /api/internal/provisioning-requests/:requestId/status`
+
+### Data-plane external forwarding endpoints
+
+- `POST /v1/infer` -> CP `/api/internal/infer`
+- `POST /v1/chat/completions` -> CP `/v1/chat/completions`
+- `POST /v1/responses` -> CP `/v1/responses`
+- `POST /v1/node-pools/:nodePoolId/provisioning-requests`
+- `POST /v1/node-pools/:nodePoolId/provisioning-requests/lease`
+- `GET /v1/provisioning-requests/:requestId`
+- `POST /v1/provisioning-requests/:requestId/status`
+
+---
+
+## Quick start (local)
 
 ```bash
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_STARTER=price_...
-STRIPE_PRICE_PRO=price_...
-STRIPE_BILLING_PORTAL_RETURN_URL=https://your-app.example.com/billing
+npm install
+npm start
+# http://localhost:3000
 ```
 
-Available payment endpoints:
+Minimum env for meaningful operation:
 
-- `GET /api/payments/readiness`
-- `GET /api/payments/plans`
-- `POST /api/user/payments/checkout-session` (requires login + same-origin)
-- `POST /api/payments/webhook/stripe`
-- `GET /api/user/subscription` (requires login)
-- `POST /api/user/payments/billing-portal` (requires login + same-origin)
-
-See `PAYMENTS.md` for details and security notes.
-
-## Project Structure
-
-```
-├── src/
-│   ├── app.js            # Main routes and middleware wiring
-│   ├── auth.js           # Admin token extraction and guard middleware
-│   ├── config.js         # Env configuration parsing
-│   ├── console.html      # Protected analytics dashboard UI
-│   ├── db.js             # Postgres init, analytics queries, retention purge
-│   ├── providers.js      # OpenAI/Anthropic/Gemini adapters and usage extraction
-│   ├── rate-limit.js     # Proxy/auth throttling (Redis optional, in-memory fallback)
-│   └── index.js          # Bootstrap and server startup
-├── public/
-│   ├── index.html        # Landing page
-│   └── health.html       # Human-friendly health dashboard
-├── db/
-│   └── migrations/
-│       └── 001_llm_usage_console.sql
-├── test/
-│   ├── app-routes.test.js
-│   ├── auth.test.js
-│   ├── pricing.test.js
-│   └── providers-usage.test.js
-├── .github/
-│   └── workflows/
-│       ├── ci.yml        # CI pipeline
-│       ├── cd.yml        # CD pipeline (GHCR push)
-│       ├── release.yml   # GitHub release on every push
-│       └── uptime.yml    # Scheduled /health checks
-├── Dockerfile
-├── .dockerignore
-├── .env.example
-├── .eslintrc.json
-├── .nvmrc
-├── CHANGELOG.md
-└── package.json
+```bash
+DATABASE_URL=postgres://...
+CONSOLE_ADMIN_TOKEN=replace_with_long_random_token
+OPENAI_API_KEY=...
+# optional: ANTHROPIC_API_KEY, GEMINI_API_KEY
+# optional: REDIS_URL
 ```
 
-## Docker Image
+Start from `.env.example`.
 
-Images are published to the GitHub Container Registry:
+---
 
+## 3-plane deployment (Render)
+
+Use `render-3plane.yaml` to create:
+
+1. `openclaw-control-plane` (Node web service)
+2. `openclaw-data-plane` (Node web service)
+3. `openclaw-frontend` (static site)
+
+Key wiring:
+
+- Set `CONTROL_PLANE_URL` on data plane to the control-plane URL
+- Set identical `DATA_PLANE_SHARED_TOKEN` on both CP and DP
+- Set `DATABASE_URL` on control plane
+- Optionally set `REDIS_URL` for distributed session/rate-limit storage
+
+Full instructions: `DEPLOY_3PLANE.md`.
+
+---
+
+## Node-pool provisioning feature
+
+OpenClaw now includes a node-pool provisioning request + lease lifecycle that can be consumed through the data plane (`/v1/node-pools/...` and `/v1/provisioning-requests/...`).
+
+This provides:
+
+- pool-scoped provisioning requests
+- worker lease acquisition with TTL
+- request status tracking and completion/failure reporting
+
+Design/expansion roadmap (including richer pool/node identity model):
+`docs/node-pool-provisioning-spec.md`.
+
+---
+
+## Security notes
+
+- Admin APIs require `x-admin-token` (`CONSOLE_ADMIN_TOKEN`)
+- Internal CP endpoints require `x-data-plane-token`
+- Session-authenticated endpoints use secure cookie/session flow
+- Same-origin checks protect mutating user billing/auth routes
+- Optional CORS allowlist, provider/model allowlists, and security header toggles
+
+---
+
+## Scripts
+
+```bash
+npm start                 # control plane
+npm run start:control-plane
+npm run start:data-plane
+npm test
+npm run lint
+npm run billing:sync-managed-usage
 ```
-ghcr.io/johnangel135/openclaw:latest
-ghcr.io/johnangel135/openclaw:<git-sha>
-```
+
+---
 
 ## License
 

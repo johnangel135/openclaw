@@ -16,10 +16,12 @@
       --fern:     #52b788;
       --mint:     #b7e4c7;
       --dew:      #d8f3dc;
-      --bark:     #1b4332;
-      --sky:      #f0fdf4;
-      --text:     #1a2e22;
-      --muted:    #2f5f46;
+      --bark:     #163728;
+      --sky:      #f5fbf7;
+      --text:     #10281d;
+      --muted:    #254c39;
+      --surface:  #ffffff;
+      --surface-soft: #f2faf5;
       --focus:    #0f766e;
     }
 
@@ -70,13 +72,19 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 100;
+      background: rgba(245, 251, 247, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--mint);
+      box-shadow: 0 6px 20px rgba(16, 40, 29, 0.06);
+    }
+
+    .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1.25rem 2.5rem;
-      background: rgba(240, 253, 244, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--mint);
+      padding: 1rem 1.25rem;
     }
 
     .nav-logo {
@@ -99,15 +107,17 @@
     }
 
     .nav-links a {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--bark);
       text-decoration: none;
       transition: color 0.2s, background 0.2s;
       border-radius: 8px;
+      padding: 0.45rem 0.6rem;
     }
 
-    .nav-links a:hover { color: var(--forest); }
+    .nav-links a:hover,
+    .nav-links a.is-active { color: var(--forest); background: var(--surface-soft); }
 
     .nav-console-mobile {
       display: none;
@@ -533,7 +543,7 @@
     }
 
     @media (max-width: 640px) {
-      nav { padding: 1rem 1.25rem; }
+      .nav-inner { padding: 0.85rem 1rem; }
       .nav-menu-btn { display: inline-flex; align-items: center; }
       .nav-links {
         display: none;
@@ -570,7 +580,7 @@
   </style>
 </head>
 <body>
-  <a class="skip-link" href="#features">Skip to main content</a>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
 
   <!-- Floating leaf SVGs -->
   <svg class="leaf leaf-1" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -613,16 +623,18 @@
 
   <!-- Nav -->
   <nav>
-    <a class="nav-logo" href="/">Open<span>Claw</span></a>
-    <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-expanded="false" aria-controls="mainNavLinks">Menu</button>
-    <ul id="mainNavLinks" class="nav-links">
-      <li><a href="#features">Features</a></li>
-      <li><a href="#subscriptions">Subscriptions</a></li>
-      <li><a href="/health">Health</a></li>
-      <li><a href="/console">Console</a></li>
-      <li><a href="https://github.com/johnangel135/openclaw">GitHub</a></li>
-    </ul>
-    <a class="nav-console-mobile" href="/console">Console</a>
+    <div class="nav-inner">
+      <a class="nav-logo" href="/">Open<span>Claw</span></a>
+      <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-expanded="false" aria-controls="mainNavLinks">Menu</button>
+      <ul id="mainNavLinks" class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#subscriptions">Subscriptions</a></li>
+        <li><a href="/health">Health</a></li>
+        <li><a href="/console">Console</a></li>
+        <li><a href="https://github.com/johnangel135/openclaw" target="_blank" rel="noopener" aria-label="Open GitHub repository in a new tab">GitHub</a></li>
+      </ul>
+      <a class="nav-console-mobile" href="/console">Console</a>
+    </div>
   </nav>
 
   <!-- Hero -->
@@ -671,6 +683,7 @@
     </div>
   </section>
 
+  <main id="main-content">
   <!-- Features -->
   <section class="features" id="features">
     <p class="section-label">What you get</p>
@@ -734,6 +747,7 @@
   <footer>
     <p>OpenClaw is open source under the MIT License. <a href="https://github.com/johnangel135/openclaw">View source on GitHub</a>.</p>
   </footer>
+  </main>
 
   <script>
     (function () {
@@ -755,6 +769,10 @@
           if (event.target === menuBtn || menuBtn.contains(event.target)) return;
           if (navLinks.contains(event.target)) return;
           setOpen(false);
+        });
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') setOpen(false);
         });
 
         navLinks.querySelectorAll('a').forEach((a) => {
@@ -798,7 +816,7 @@
             <div class="plan-name">${plan.name || plan.id}</div>
             <div class="plan-price">${plan.id === 'enterprise' ? 'Custom' : `${money(plan.unit_amount)}${plan.interval ? '/' + plan.interval : ''}`}</div>
             <ul>${(plan.features || []).map((f) => `<li>${f}</li>`).join('')}</ul>
-            <a class="btn ${plan.id === 'pro' || plan.id === 'scale' ? 'btn-primary' : 'btn-ghost'}" href="${plan.id === 'enterprise' ? '/auth?contact=sales' : `/signup?plan=${encodeURIComponent(plan.id || '')}`}">${ctaText}</a>
+            <a class="btn ${plan.id === 'pro' || plan.id === 'scale' ? 'btn-primary' : 'btn-ghost'}" href="${plan.id === 'enterprise' ? '/auth?contact=sales' : `/auth?mode=signup&plan=${encodeURIComponent(plan.id || '')}`}">${ctaText}</a>
           `;
           host.appendChild(card);
         });

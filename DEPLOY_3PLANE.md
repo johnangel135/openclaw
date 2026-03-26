@@ -1,42 +1,100 @@
-# 3-Plane Deployment Guide (Frontend / Control Plane / Data Plane)
+# Deploy OpenClaw in 3 Planes (Frontend / Control Plane / Data Plane)
 
-## What was prepared
-- `services/data-plane/index.js` (inference-focused data plane)
-- `render-3plane.yaml` (Render blueprint for 3 services)
-- package scripts:
-  - `npm run start:control-plane`
-  - `npm run start:data-plane`
+This runbook is aligned with the current codebase and `render-3plane.yaml` blueprint.
 
-## Service responsibilities
-- **Frontend** (`openclaw-frontend`): static `public/`
-- **Control Plane** (`openclaw-control-plane`): auth, billing, tenancy, config, dashboard APIs
-- **Data Plane** (`openclaw-data-plane`): high-throughput inference ingress and forwarding
+## 1) What gets deployed
 
-## Deploy steps
-1. Commit and push these changes.
-2. In Render, create Blueprint using `render-3plane.yaml`.
-3. Set secrets for control plane:
-   - `DATABASE_URL`, `REDIS_URL`, `USER_KEYS_ENCRYPTION_KEY`
-   - provider keys as needed
-4. Set `CONTROL_PLANE_URL` for data plane to full URL, e.g.:
-   - `https://openclaw-control-plane.onrender.com`
-5. (Optional) DNS split:
-   - `app.yourdomain.com` -> frontend
-   - `api.yourdomain.com` -> control plane
-   - `gateway.yourdomain.com` -> data plane
+- **Frontend**: `openclaw-frontend` (Render static site)
+- **Control plane**: `openclaw-control-plane` (Node web service, `npm run start:control-plane`)
+- **Data plane**: `openclaw-data-plane` (Node web service, `npm run start:data-plane`)
 
-## Validation
-- Frontend: `GET /` works
-- Control plane: `GET /health` is `ok`
-- Data plane: `GET /health` is `ok`
-- Data plane inference:
-  - `POST /v1/infer` forwards to control plane `/api/user/infer`
+## 2) Prerequisites
 
-## Notes
-- This is a production-ready split baseline for scaling and independent autoscaling.
-- Internal node-pool provisioning lifecycle routes are now exposed through the data plane:
-  - `POST /v1/node-pools/:nodePoolId/provisioning-requests`
-  - `POST /v1/node-pools/:nodePoolId/provisioning-requests/lease`
-  - `GET /v1/provisioning-requests/:requestId`
-  - `POST /v1/provisioning-requests/:requestId/status`
-- Next hardening step: move inference logic fully into data plane (instead of forwarding) and keep control plane purely orchestration/billing.
+- Render account/project
+- Postgres connection string for control plane (`DATABASE_URL`)
+- Shared secret for CP/DP trust (`DATA_PLANE_SHARED_TOKEN`)
+- At least one provider key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY`)
+- Optional Redis URL for distributed sessions/rate limits
+
+## 3) Deploy via Render Blueprint
+
+1. Push this repository to GitHub.
+2. In Render, create a new **Blueprint** and select this repo.
+3. Confirm the blueprint file: `render-3plane.yaml`.
+4. Provision all 3 services.
+
+## 4) Configure environment variables
+
+### Control plane (`openclaw-control-plane`)
+
+Required/important:
+
+- `NODE_ENV=production`
+- `PORT=10000`
+- `TRUST_PROXY=true`
+- `DATABASE_URL=...`
+- `CONSOLE_ADMIN_TOKEN=...`
+- `DATA_PLANE_SHARED_TOKEN=...`
+- provider keys as needed (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
+
+Recommended:
+
+- `REDIS_URL=...`
+- `USER_KEYS_ENCRYPTION_KEY=...`
+
+### Data plane (`openclaw-data-plane`)
+
+Required:
+
+- `NODE_ENV=production`
+- `PORT=10000`
+- `CONTROL_PLANE_URL=https://<your-control-plane-host>`
+- `DATA_PLANE_SHARED_TOKEN=<same value as control plane>`
+
+### Frontend (`openclaw-frontend`)
+
+- No runtime env required for static publish baseline.
+
+## 5) Post-deploy validation
+
+### Basic health
+
+- Frontend: `GET /`
+- Control plane: `GET /health`
+- Data plane: `GET /health`
+
+### Inference checks
+
+- Data plane -> control plane forwarding:
+  - `POST /v1/infer`
+  - `POST /v1/chat/completions`
+  - `POST /v1/responses`
+
+### Provisioning checks (new node-pool flow)
+
+Through data plane:
+
+- `POST /v1/node-pools/:nodePoolId/provisioning-requests`
+- `POST /v1/node-pools/:nodePoolId/provisioning-requests/lease`
+- `GET /v1/provisioning-requests/:requestId`
+- `POST /v1/provisioning-requests/:requestId/status`
+
+## 6) Recommended domain split
+
+- `app.yourdomain.com` -> frontend
+- `api.yourdomain.com` -> control plane
+- `gateway.yourdomain.com` -> data plane
+
+## 7) Security and ops notes
+
+- Keep `DATA_PLANE_SHARED_TOKEN` long/random and rotated periodically.
+- Do not expose control-plane internal routes publicly without network controls.
+- Use Redis in production for multi-instance session/rate-limit consistency.
+- Keep Stripe webhooks pointed to control plane (`/api/payments/webhook/stripe`).
+
+## 8) Troubleshooting quick hits
+
+- **DP returns `control_plane_unreachable`**: verify `CONTROL_PLANE_URL` and network reachability.
+- **CP internal APIs return `config_missing_data_plane_token`**: set `DATA_PLANE_SHARED_TOKEN` on CP.
+- **Provisioning endpoints return `503 DATABASE_URL is not configured`**: configure CP Postgres.
+- **Auth/session inconsistency across instances**: set Redis and `TRUST_PROXY=true`.

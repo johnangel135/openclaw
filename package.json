@@ -1,7 +1,7 @@
 {
   "name": "openclaw",
   "version": "1.0.0",
-  "description": "A beautiful nature-inspired Node.js Express welcome page",
+  "description": "OpenClaw control/data plane with auth, usage analytics, and billing",
   "main": "src/index.js",
   "engines": {
     "node": "20.x"

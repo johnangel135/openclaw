@@ -35,13 +35,19 @@
       position: sticky;
       top: 0;
       z-index: 10;
+      backdrop-filter: blur(8px);
+      background: rgba(240, 253, 244, 0.9);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 6px 16px rgba(16, 40, 29, 0.06);
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 1.5rem;
-      backdrop-filter: blur(8px);
-      background: rgba(240, 253, 244, 0.86);
-      border-bottom: 1px solid var(--line);
+      padding: 0.85rem 1.2rem;
     }
 
     .nav-logo {
@@ -62,10 +68,13 @@
     }
 
     .nav-links a {
-      color: var(--muted);
+      color: var(--bark);
       text-decoration: none;
-      font-weight: 500;
+      font-weight: 600;
+      padding: 0.4rem 0.55rem;
+      border-radius: 8px;
     }
+    .nav-links a:hover { background: #eef8f2; color: var(--forest); }
 
     .menu-btn {
       display: none;
@@ -158,7 +167,8 @@
     .billing-actions .secondary {
       background: #fff;
       color: var(--bark);
-      border: 1px solid var(--mint);
+      border: 1px solid #9acfb4;
+      font-weight: 600;
     }
 
     .card {
@@ -391,13 +401,16 @@
 </head>
 <body>
   <nav>
-    <a class="nav-logo" href="/">Open<span>Claw</span></a>
-    <button id="menuBtn" class="menu-btn" type="button" aria-expanded="false" aria-controls="mainNav">Menu</button>
-    <ul id="mainNav" class="nav-links">
-      <li><a href="/">Home</a></li>
-      <li><a href="/health">Health</a></li>
-      <li><a href="#billing-title">Billing</a></li>
-    </ul>
+    <div class="nav-inner">
+      <a class="nav-logo" href="/">Open<span>Claw</span></a>
+      <button id="menuBtn" class="menu-btn" type="button" aria-expanded="false" aria-controls="mainNav">Menu</button>
+      <ul id="mainNav" class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="#api-keys-title">API Keys</a></li>
+        <li><a href="#billing-title">Billing</a></li>
+        <li><a href="/health">Health</a></li>
+      </ul>
+    </div>
   </nav>
 
   <main class="container">
@@ -876,6 +889,19 @@
     menuBtn.addEventListener('click', () => {
       const open = mainNav.classList.toggle('open');
       menuBtn.setAttribute('aria-expanded', String(open));
+    });
+    document.addEventListener('click', (event) => {
+      if (!mainNav.classList.contains('open')) return;
+      if (event.target === menuBtn || menuBtn.contains(event.target)) return;
+      if (mainNav.contains(event.target)) return;
+      mainNav.classList.remove('open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        mainNav.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded', 'false');
+      }
     });
 
     document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
