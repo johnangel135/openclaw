@@ -3,9 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="refresh" content="0; url=https://openclaw-control-plane.onrender.com/auth/login" />
   <title>Redirecting to Login…</title>
-  <script>location.replace('https://openclaw-control-plane.onrender.com/auth/login');</script>
+  <script>
+    const target = new URL('https://openclaw-control-plane.onrender.com/auth/login');
+    if (location.search) target.search = location.search.slice(1);
+    location.replace(target.toString());
+  </script>
 </head>
-<body>Redirecting to <a href="https://openclaw-control-plane.onrender.com/auth/login">Login</a>…</body>
+<body>Redirecting to <a id="loginLink" href="https://openclaw-control-plane.onrender.com/auth/login">Login</a>…
+<script>
+  const link = document.getElementById('loginLink');
+  const target = new URL(link.href);
+  if (location.search) target.search = location.search.slice(1);
+  link.href = target.toString();
+</script>
+</body>
 </html>

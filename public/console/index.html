@@ -3,9 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="refresh" content="0; url=https://openclaw-control-plane.onrender.com/console" />
   <title>Redirecting to Console…</title>
-  <script>location.replace('https://openclaw-control-plane.onrender.com/console');</script>
+  <script>
+    const target = new URL('https://openclaw-control-plane.onrender.com/console');
+    if (location.search) target.search = location.search.slice(1);
+    location.replace(target.toString());
+  </script>
 </head>
-<body>Redirecting to <a href="https://openclaw-control-plane.onrender.com/console">Console</a>…</body>
+<body>Redirecting to <a id="consoleLink" href="https://openclaw-control-plane.onrender.com/console">Console</a>…
+<script>
+  const link = document.getElementById('consoleLink');
+  const target = new URL(link.href);
+  if (location.search) target.search = location.search.slice(1);
+  link.href = target.toString();
+</script>
+</body>
 </html>
