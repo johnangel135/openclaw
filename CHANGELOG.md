@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.49 - 2026-03-26
+
+- chore(cleanup): remove unintended password hardening test file (cd6309e)
+- fix: prevent updates to finalized provisioning requests (9b4b67c)
+- Preserve query params across frontend auth/console redirects (6f66e86)
+
 ## v1.0.48 - 2026-03-26
 
 - chore(cleanup): remove stale Render latency checklist (7af7e0b)
