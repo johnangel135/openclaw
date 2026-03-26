@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.46 - 2026-03-26
+
+- feat(pool): add CP/DP node-pool provisioning lifecycle and deploy-ready docs (d49cfab)
+
 ## v1.0.45 - 2026-03-25
 
 - Stabilize GitHub notifications: add retries/timeouts for uptime and billing sync workflows (e6a2585)
