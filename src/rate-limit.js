@@ -73,6 +73,7 @@ function createRateLimiter({ maxRequests, windowMs, keyFn, store } = {}) {
             error: {
               message: 'Rate limit exceeded',
               code: 'rate_limit_exceeded',
+              retry_after_seconds: result.retryAfterSeconds,
             },
           });
           return;
@@ -132,6 +133,7 @@ function createAuthThrottle({
             error: {
               message: 'Too many authentication attempts. Please retry later.',
               code: 'auth_rate_limited',
+              retry_after_seconds: Math.max(retryAfterSeconds, 1),
             },
           });
           return;

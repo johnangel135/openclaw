@@ -69,6 +69,7 @@ test('auth throttle applies lockout after repeated failures and clears on succes
   assert.equal(blocked.res.statusCode, 429);
   assert.equal(blocked.res.body.error.code, 'auth_rate_limited');
   assert.ok(Number(blocked.res.headers['Retry-After']) >= 1);
+  assert.ok(Number(blocked.res.body.error.retry_after_seconds) >= 1);
 
   throttle.recordSuccess(req);
   await new Promise((resolve) => setImmediate(resolve));
@@ -152,4 +153,5 @@ test('rate limiter uses redis-backed store when dependency returns redis client'
   });
   assert.equal(second.ok, false);
   assert.equal(second.res.statusCode, 429);
+  assert.ok(Number(second.res.body.error.retry_after_seconds) >= 1);
 });

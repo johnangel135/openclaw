@@ -454,7 +454,8 @@
       <div class="billing-actions">
         <button id="upgradeStarterBtn" type="button">Upgrade to Starter</button>
         <button id="upgradeProBtn" type="button">Upgrade to Pro</button>
-        <button id="upgradeEnterpriseBtn" type="button">Upgrade to Enterprise</button>
+        <button id="upgradeScaleBtn" type="button">Upgrade to Scale</button>
+        <button id="contactSalesBtn" class="secondary" type="button">Contact sales</button>
         <button id="manageBillingBtn" class="secondary" type="button">Manage billing</button>
       </div>
     </section>
@@ -556,8 +557,13 @@
       const response = await fetch(url, { headers: authHeaders(), credentials: 'include' });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 401) {
+          location.href = '/auth/login';
+          throw new Error('Login required');
+        }
+        const retryAfter = payload?.error?.retry_after_seconds;
         const message = payload?.error?.message || `Request failed (${response.status})`;
-        throw new Error(message);
+        throw new Error(retryAfter ? `${message} Try again in ${retryAfter}s.` : message);
       }
       return payload;
     }
@@ -798,53 +804,61 @@
       btn.textContent = 'Saving…';
       setError('');
 
-      const body = {};
-      const openai = document.getElementById('keyOpenAI').value.trim();
-      const anthropic = document.getElementById('keyAnthropic').value.trim();
-      const gemini = document.getElementById('keyGemini').value.trim();
-      const clearOpenAI = document.getElementById('clearOpenAI').checked;
-      const clearAnthropic = document.getElementById('clearAnthropic').checked;
-      const clearGemini = document.getElementById('clearGemini').checked;
+      try {
+        const body = {};
+        const openai = document.getElementById('keyOpenAI').value.trim();
+        const anthropic = document.getElementById('keyAnthropic').value.trim();
+        const gemini = document.getElementById('keyGemini').value.trim();
+        const clearOpenAI = document.getElementById('clearOpenAI').checked;
+        const clearAnthropic = document.getElementById('clearAnthropic').checked;
+        const clearGemini = document.getElementById('clearGemini').checked;
 
-      if (openai) body.openai = openai;
-      else if (clearOpenAI) body.openai = '';
+        if (openai) body.openai = openai;
+        else if (clearOpenAI) body.openai = '';
 
-      if (anthropic) body.anthropic = anthropic;
-      else if (clearAnthropic) body.anthropic = '';
+        if (anthropic) body.anthropic = anthropic;
+        else if (clearAnthropic) body.anthropic = '';
 
-      if (gemini) body.gemini = gemini;
-      else if (clearGemini) body.gemini = '';
+        if (gemini) body.gemini = gemini;
+        else if (clearGemini) body.gemini = '';
 
-      if (Object.keys(body).length === 0) {
-        document.getElementById('keysState').textContent = 'No changes to save. Enter a key or check Clear on a provider.';
+        if (Object.keys(body).length === 0) {
+          document.getElementById('keysState').textContent = 'No changes to save. Enter a key or check Clear on a provider.';
+          return;
+        }
+
+        const response = await fetch('/api/user/api-keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          if (response.status === 401) {
+            location.href = '/auth/login';
+            return;
+          }
+          const retryAfter = data?.error?.retry_after_seconds;
+          const message = data?.error?.message || 'Failed to save keys';
+          setError(retryAfter ? `${message} Try again in ${retryAfter}s.` : message);
+          return;
+        }
+
+        document.getElementById('keyOpenAI').value = '';
+        document.getElementById('keyAnthropic').value = '';
+        document.getElementById('keyGemini').value = '';
+        document.getElementById('clearOpenAI').checked = false;
+        document.getElementById('clearAnthropic').checked = false;
+        document.getElementById('clearGemini').checked = false;
+        document.getElementById('keysState').textContent = `Saved securely at ${new Date().toISOString().replace('T', ' ').slice(0,19)} UTC · ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ') || 'none'}`;
+        loadDashboard();
+      } catch (error) {
+        setError(error?.message || 'Failed to save keys');
+      } finally {
         btn.disabled = false;
         btn.textContent = 'Save keys';
-        return;
       }
-      const response = await fetch('/api/user/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setError(data?.error?.message || 'Failed to save keys');
-        btn.disabled = false;
-        btn.textContent = 'Save keys';
-        return;
-      }
-
-      document.getElementById('keyOpenAI').value = '';
-      document.getElementById('keyAnthropic').value = '';
-      document.getElementById('keyGemini').value = '';
-      document.getElementById('clearOpenAI').checked = false;
-      document.getElementById('clearAnthropic').checked = false;
-      document.getElementById('clearGemini').checked = false;
-      document.getElementById('keysState').textContent = `Saved securely at ${new Date().toISOString().replace('T', ' ').slice(0,19)} UTC · ${Object.entries(data.keys || {}).map(([k,v]) => `${k}=${v || 'not set'}`).join(' | ') || 'none'}`;
-      btn.disabled = false;
-      btn.textContent = 'Save keys';
-      loadDashboard();
     }
 
     async function logout() {
@@ -870,7 +884,8 @@
     document.getElementById('logoutBtn').addEventListener('click', logout);
     document.getElementById('upgradeStarterBtn').addEventListener('click', () => startCheckout('starter'));
     document.getElementById('upgradeProBtn').addEventListener('click', () => startCheckout('pro'));
-    document.getElementById('upgradeEnterpriseBtn').addEventListener('click', () => startCheckout('enterprise'));
+    document.getElementById('upgradeScaleBtn').addEventListener('click', () => startCheckout('scale'));
+    document.getElementById('contactSalesBtn').addEventListener('click', () => { location.href = '/auth?contact=sales'; });
     document.getElementById('manageBillingBtn').addEventListener('click', openBillingPortal);
 
     loadApiKeys();
