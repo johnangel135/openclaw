@@ -131,7 +131,7 @@ async function updateProvisioningRequestStatus({ requestId, status, workerId = n
       completed_at = CASE WHEN $2 IN ('${REQUEST_STATUS.SUCCEEDED}','${REQUEST_STATUS.FAILED}','${REQUEST_STATUS.CANCELLED}') THEN NOW() ELSE completed_at END,
       updated_at = NOW()
     ${where}${workerFilter}
-      AND status <> '${REQUEST_STATUS.CANCELLED}'
+      AND status NOT IN ('${REQUEST_STATUS.SUCCEEDED}', '${REQUEST_STATUS.FAILED}', '${REQUEST_STATUS.CANCELLED}')
     RETURNING *
   `;
 
