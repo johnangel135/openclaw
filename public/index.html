@@ -445,6 +445,9 @@
       border: 1px solid var(--mint);
       border-radius: 14px;
       padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
     }
 
     .plan-card.pro {
@@ -452,10 +455,18 @@
       box-shadow: 0 10px 24px rgba(64,145,108,0.16);
     }
 
-    .plan-name { font-weight: 700; color: var(--bark); margin-bottom: 0.35rem; }
-    .plan-price { font-size: 1.35rem; color: var(--forest); margin-bottom: 0.55rem; }
-    .plan-card ul { margin-left: 1rem; color: var(--muted); font-size: 0.86rem; line-height: 1.55; }
-    .plan-card .btn { margin-top: 0.8rem; width: 100%; justify-content: center; }
+    .plan-name { font-weight: 700; color: var(--bark); margin-bottom: 0.35rem; min-height: 2.4em; }
+    .plan-price { font-size: 1.35rem; color: var(--forest); margin-bottom: 0.55rem; min-height: 1.8em; display: flex; align-items: center; }
+    .plan-card ul { margin: 0 0 0 1rem; color: var(--muted); font-size: 0.86rem; line-height: 1.55; flex: 1; }
+    .plan-card li { margin-bottom: 0.35rem; }
+    .plan-card .btn {
+      margin-top: 0.95rem;
+      width: 100%;
+      justify-content: center;
+      min-height: 42px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
     .plan-card .btn-ghost {
       background: #eef8f2;
       border: 1px solid #cfe7d9;
@@ -775,7 +786,7 @@
         host.innerHTML = '';
         rows.forEach((plan) => {
           const card = document.createElement('article');
-          card.className = `plan-card ${plan.id === 'pro' ? 'pro' : ''}`;
+          card.className = `plan-card ${plan.id === 'pro' || plan.id === 'scale' ? 'pro' : ''}`;
           const ctaText = plan.id === 'pro'
             ? 'Start Pro'
             : plan.id === 'scale'
