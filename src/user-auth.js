@@ -113,8 +113,20 @@ function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
 function verifyPassword(password, digest) {
   const [salt, hash] = String(digest || '').split(':');
   if (!salt || !hash) return false;
-  const check = crypto.scryptSync(password, salt, 64).toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(check, 'hex'));
+
+  try {
+    const check = crypto.scryptSync(password, salt, 64).toString('hex');
+    const hashBuffer = Buffer.from(hash, 'hex');
+    const checkBuffer = Buffer.from(check, 'hex');
+
+    if (hashBuffer.length !== checkBuffer.length || hashBuffer.length === 0) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(hashBuffer, checkBuffer);
+  } catch {
+    return false;
+  }
 }
 
 function sanitizeUser(row) {

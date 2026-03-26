@@ -53,9 +53,10 @@ STRIPE_PRICE_STARTER=price_...
 STRIPE_PRICE_PRO=price_...
 ```
 
-Optional:
+Optional (if offering Enterprise + billing portal):
 
 ```env
+STRIPE_PRICE_ENTERPRISE=price_...
 STRIPE_SUCCESS_URL=https://your-app.example.com/billing/success
 STRIPE_CANCEL_URL=https://your-app.example.com/billing/cancel
 STRIPE_BILLING_PORTAL_RETURN_URL=https://your-app.example.com/billing

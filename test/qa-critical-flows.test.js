@@ -131,6 +131,8 @@ test('console and billing/subscription endpoints enforce auth and request constr
     .get('/console')
     .set('Cookie', sessionCookie);
   assert.equal(consoleAuthed.status, 200);
+  assert.match(consoleAuthed.text, /Upgrade to Scale/);
+  assert.match(consoleAuthed.text, /Contact sales/);
 
   const checkoutNoAuth = await request(app)
     .post('/api/user/payments/checkout-session')

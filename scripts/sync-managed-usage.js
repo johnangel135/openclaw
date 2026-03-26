@@ -35,6 +35,11 @@ async function main() {
 main().catch(async (error) => {
   // eslint-disable-next-line no-console
   console.error(error);
-  try { await closeDatabase(); } catch {}
+  try {
+    await closeDatabase();
+  } catch (closeError) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to close database cleanly:', closeError.message);
+  }
   process.exit(1);
 });
