@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.48 - 2026-03-26
+
+- chore(cleanup): remove stale Render latency checklist (7af7e0b)
+
 ## v1.0.47 - 2026-03-26
 
 - chore(polish): repo cleanup, docs refresh, and UI/UX improvements (80c4bea)
