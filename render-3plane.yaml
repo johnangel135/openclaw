@@ -16,7 +16,9 @@ services:
       - key: TRUST_PROXY
         value: "true"
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: openclaw-control-plane-postgres
+          property: connectionString
       - key: REDIS_URL
         sync: false
       - key: USER_KEYS_ENCRYPTION_KEY
@@ -57,3 +59,10 @@ services:
     buildCommand: ""
     staticPublishPath: public
     pullRequestPreviewsEnabled: false
+
+databases:
+  - name: openclaw-control-plane-postgres
+    plan: free
+    region: oregon
+    databaseName: openclaw
+    user: openclaw
