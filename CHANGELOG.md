@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.50 - 2026-05-28
+
+- Fix billing sync deployment database config (9bc2a34)
+
 ## v1.0.49 - 2026-03-26
 
 - chore(cleanup): remove unintended password hardening test file (cd6309e)
